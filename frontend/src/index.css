@@ -99,6 +99,43 @@ h1, h2, h3, h4, h5, h6 {
   @apply block text-sm font-medium text-roma-muted mb-1;
 }
 
+.input-date-time-row {
+  @apply flex gap-2 items-stretch;
+}
+
+.input-date-time-row .input-date {
+  @apply w-auto flex-1 min-w-[9.5rem];
+}
+
+.input-date-time-row .input-time {
+  @apply w-auto shrink-0 min-w-[7.5rem] max-w-[8.5rem];
+}
+
+.input-phone-row {
+  @apply flex gap-2 items-stretch;
+}
+
+.input-phone-prefix {
+  @apply inline-flex shrink-0 items-center justify-center rounded-lg border border-roma-border
+    bg-roma-dark px-3 py-2.5 text-sm font-medium text-white tabular-nums min-w-[4.75rem];
+}
+
+.input-phone-row .input-phone {
+  @apply w-auto flex-1 min-w-0;
+}
+
+input[type='date'],
+input[type='time'] {
+  color-scheme: dark;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='time']::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.75);
+  opacity: 0.85;
+}
+
 /* ── Badges ── */
 .badge {
   @apply text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide;

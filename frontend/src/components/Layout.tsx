@@ -42,10 +42,11 @@ export default function Layout({ children }: LayoutProps) {
               href={whatsappUrl(t('common.whatsappInquiry'))}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-sm text-white bg-[#25D366] hover:bg-[#1fb855] px-3 py-2 rounded-lg font-medium transition-colors"
+              aria-label={t('home.support247')}
+              className="flex items-center gap-1.5 text-xs sm:text-sm text-white bg-[#25D366] hover:bg-[#1fb855] px-2.5 sm:px-3 py-2 rounded-lg font-medium transition-colors shrink-0"
             >
-              <MessageCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('common.contact')}</span>
+              <MessageCircle className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline whitespace-nowrap">{t('home.support247')}</span>
             </a>
             <LanguageSwitcher iconOnly />
           </nav>

@@ -179,7 +179,7 @@ export default function ContactPage() {
               className="flex items-center justify-center gap-2 w-full py-3.5 px-6 rounded-lg text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1fb855] transition-colors shadow-[0_4px_20px_rgba(37,211,102,0.25)]"
             >
               <MessageCircle className="w-5 h-5" />
-              {t('contact.chatWhatsApp')}
+              {t('contact.contactWhatsApp')}
             </a>
           </aside>
 

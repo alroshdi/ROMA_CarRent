@@ -5,6 +5,7 @@ import { Search, Calendar, Car as CarIcon, ArrowRight } from 'lucide-react'
 import Layout from '../components/Layout'
 import CarCard from '../components/CarCard'
 import FeatureCard, { FEATURE_KEYS } from '../components/FeatureCard'
+import FaqSection from '../components/FaqSection'
 import HeroSlideBackground from '../components/HeroSlideBackground'
 import api from '../lib/api'
 import { HERO_SLIDE_IMAGES } from '../lib/heroSlides'
@@ -52,7 +53,7 @@ export default function HomePage() {
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 md:pb-14 pt-32">
           <div className="max-w-3xl mb-8 md:mb-10">
             <div className="accent-line mb-5" />
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] font-bold text-white leading-snug tracking-wide">
+            <h1 className="text-[clamp(0.8125rem,2.75vw,3.25rem)] font-bold text-white leading-tight tracking-wide whitespace-nowrap">
               {t('home.heroLine1')}
             </h1>
             <p
@@ -170,6 +171,8 @@ export default function HomePage() {
         )}
         </div>
       </section>
+
+      <FaqSection />
     </Layout>
   )
 }

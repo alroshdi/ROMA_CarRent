@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, CheckCircle, Shield, IdCard, Clock } from 'lucid
 import Layout from '../components/Layout'
 import SignaturePad from '../components/SignaturePad'
 import BookingLocationField from '../components/BookingLocationField'
+import BookingPriceBreakdown from '../components/BookingPriceBreakdown'
 import { useAuth } from '../lib/auth'
 import api from '../lib/api'
 import { parseStoredLocation, resolveLocationValue, type BookingLocationKey } from '../lib/bookingLocations'
@@ -108,6 +109,31 @@ export default function BookingFlowPage() {
   const driverDailyRate = settings?.driver_daily_rate ?? 25
   const driverCost = withDriver ? driverDailyRate * days : 0
   const totalPrice = carCost + driverCost
+
+  const getBookingDays = (b: Booking) =>
+    b.driver_hours ?? Math.max(1, differenceInDays(new Date(b.return_date), new Date(b.pickup_date)) + 1)
+
+  const getBookingPricing = (b: Booking) => {
+    const bookingDays = getBookingDays(b)
+    const bookingCarCost = parseFloat(b.car_cost)
+    const bookingDriverCost = parseFloat(b.driver_cost)
+    const bookingTotal = parseFloat(b.total_price)
+    const bookingDailyCarRate = b.car
+      ? parseFloat(b.car.daily_price)
+      : bookingCarCost / bookingDays
+    const bookingDriverDailyRate = b.with_driver && bookingDays > 0
+      ? bookingDriverCost / bookingDays
+      : driverDailyRate
+
+    return {
+      days: bookingDays,
+      dailyCarRate: bookingDailyCarRate,
+      carCost: bookingCarCost,
+      driverDailyRate: bookingDriverDailyRate,
+      driverCost: bookingDriverCost,
+      totalPrice: bookingTotal,
+    }
+  }
 
   const createBooking = async () => {
     setError('')
@@ -250,20 +276,18 @@ export default function BookingFlowPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label">{t('booking.pickupDate')}</label>
-                  <div className="flex gap-2">
-                    <input type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} className="input flex-1 min-w-0" required />
-                    <input type="time" value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} className="input w-[7.5rem] shrink-0" dir="ltr" aria-label={t('booking.pickupTime')} />
+                  <label className="label" htmlFor="pickup-date">{t('booking.pickupDateTime')}</label>
+                  <div className="input-date-time-row">
+                    <input id="pickup-date" type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} className="input input-date" required />
+                    <input type="time" value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} className="input input-time" dir="ltr" aria-label={t('booking.pickupTime')} />
                   </div>
-                  <p className="text-[10px] text-roma-subtle mt-1">{t('booking.pickupTime')}</p>
                 </div>
                 <div>
-                  <label className="label">{t('booking.returnDate')}</label>
-                  <div className="flex gap-2">
-                    <input type="date" value={returnDate} min={pickupDate} onChange={(e) => setReturnDate(e.target.value)} className="input flex-1 min-w-0" required />
-                    <input type="time" value={returnTime} onChange={(e) => setReturnTime(e.target.value)} className="input w-[7.5rem] shrink-0" dir="ltr" aria-label={t('booking.returnTime')} />
+                  <label className="label" htmlFor="return-date">{t('booking.returnDateTime')}</label>
+                  <div className="input-date-time-row">
+                    <input id="return-date" type="date" value={returnDate} min={pickupDate} onChange={(e) => setReturnDate(e.target.value)} className="input input-date" required />
+                    <input type="time" value={returnTime} onChange={(e) => setReturnTime(e.target.value)} className="input input-time" dir="ltr" aria-label={t('booking.returnTime')} />
                   </div>
-                  <p className="text-[10px] text-roma-subtle mt-1">{t('booking.returnTime')}</p>
                 </div>
               </div>
               <BookingLocationField
@@ -363,35 +387,55 @@ export default function BookingFlowPage() {
                   </label>
                 )}
               </div>
-              <div className="bg-roma-dark rounded-lg p-4 mt-4 border border-roma-border">
-                <div className="flex justify-between text-sm text-roma-muted"><span>{t('booking.carDays', { days })}</span><span className="text-white">{carCost.toFixed(2)} {t('common.omr')}</span></div>
-                {withDriver && <div className="flex justify-between text-sm mt-1 text-roma-muted"><span>{t('booking.driverDaysCost', { days, rate: driverDailyRate.toFixed(2) })}</span><span className="text-white">{driverCost.toFixed(2)} {t('common.omr')}</span></div>}
-                <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t border-roma-border"><span className="text-white">{t('common.total')}</span><span className="text-primary">{totalPrice.toFixed(2)} {t('common.omr')}</span></div>
-              </div>
+              <BookingPriceBreakdown
+                days={days}
+                dailyCarRate={car ? parseFloat(car.daily_price) : 0}
+                carCost={carCost}
+                withDriver={withDriver}
+                driverDailyRate={driverDailyRate}
+                driverCost={driverCost}
+                totalPrice={totalPrice}
+              />
               <button type="button" onClick={createBooking} disabled={loading || (!withDriver && !hasGccLicense)} className="btn-primary w-full py-3 disabled:opacity-50 disabled:cursor-not-allowed">
                 {loading ? t('booking.creatingBooking') : t('common.continue')} {!loading && <ContinueIcon className="w-4 h-4" />}
               </button>
             </div>
           )}
 
-          {step === 'summary' && booking && (
+          {step === 'summary' && booking && (() => {
+            const pricing = getBookingPricing(booking)
+            return (
             <div className="space-y-4">
               <div className="bg-roma-dark rounded-lg p-4 space-y-2 text-sm border border-roma-border">
                 <div className="flex justify-between"><span className="text-roma-muted">{t('booking.bookingNumber')}</span><span className="font-medium text-white">{booking.id}</span></div>
                 <div className="flex justify-between gap-4"><span className="text-roma-muted shrink-0">{t('common.dates')}</span><span className="text-white text-end">{formatDate(booking.pickup_date, 'MMM d')}{booking.pickup_time ? ` · ${formatBookingTime(booking.pickup_time)}` : ''} — {formatDate(booking.return_date, 'MMM d, yyyy')}{booking.return_time ? ` · ${formatBookingTime(booking.return_time)}` : ''}</span></div>
                 <div className="flex justify-between gap-4"><span className="text-roma-muted shrink-0">{t('booking.pickup')}</span><span className="text-white text-end">{booking.pickup_location}</span></div>
                 <div className="flex justify-between gap-4"><span className="text-roma-muted shrink-0">{t('booking.dropoff')}</span><span className="text-white text-end">{booking.dropoff_location}</span></div>
+                {booking.with_driver && booking.driver && (
+                  <div className="flex justify-between gap-4"><span className="text-roma-muted shrink-0">{t('booking.selectDriver')}</span><span className="text-white text-end">{booking.driver.name}</span></div>
+                )}
                 {booking.additional_notes && (
                   <div className="flex justify-between gap-4 pt-2 border-t border-roma-border/50"><span className="text-roma-muted shrink-0">{t('booking.additionalNotes')}</span><span className="text-white text-sm text-end whitespace-pre-wrap">{booking.additional_notes}</span></div>
                 )}
-                <div className="flex justify-between font-bold text-lg pt-2 border-t border-roma-border"><span className="text-white">{t('common.total')}</span><span className="text-primary">{parseFloat(booking.total_price).toFixed(2)} {t('common.omr')}</span></div>
-                <p className="text-xs text-roma-muted pt-3 border-t border-roma-border mt-2">{t('booking.securityDepositNote')}</p>
               </div>
+
+              <BookingPriceBreakdown
+                days={pricing.days}
+                dailyCarRate={pricing.dailyCarRate}
+                carCost={pricing.carCost}
+                withDriver={booking.with_driver}
+                driverDailyRate={pricing.driverDailyRate}
+                driverCost={pricing.driverCost}
+                totalPrice={pricing.totalPrice}
+                showDepositNote
+              />
+
               <button onClick={generateContract} disabled={loading} className="btn-primary w-full py-3">
                 {t('booking.generateContract')}
               </button>
             </div>
-          )}
+            )
+          })()}
 
           {step === 'contract' && pdfUrl && (
             <div className="space-y-4">

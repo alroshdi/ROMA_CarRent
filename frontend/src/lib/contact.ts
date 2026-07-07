@@ -1,5 +1,6 @@
 export const CONTACT_PHONE_DISPLAY = '+968 97103009'
 export const CONTACT_PHONE_DIAL = '+96897103009'
+export const CONTACT_DIAL_CODE = '+968'
 export const CONTACT_INSTAGRAM_HANDLE = 'Roma.car3'
 export const CONTACT_INSTAGRAM_URL = 'https://www.instagram.com/roma.car3/'
 

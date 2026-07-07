@@ -14,6 +14,7 @@ export default function PaymentSuccessPage() {
   const [booking, setBooking] = useState<Booking | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [whatsappSent, setWhatsappSent] = useState(false)
 
   useEffect(() => {
     if (!sessionId) {
@@ -42,12 +43,21 @@ export default function PaymentSuccessPage() {
       )
     : null
 
-  useEffect(() => {
-    if (waLink && booking) {
-      const timer = setTimeout(() => window.open(waLink, '_blank'), 3000)
-      return () => clearTimeout(timer)
+  const handleWhatsAppClick = () => {
+    if (!waLink) return
+    window.open(waLink, '_blank', 'noopener,noreferrer')
+    setWhatsappSent(true)
+    if (booking) {
+      sessionStorage.setItem(`whatsapp_sent_booking_${booking.id}`, '1')
     }
-  }, [waLink, booking])
+  }
+
+  useEffect(() => {
+    if (booking) {
+      const sent = sessionStorage.getItem(`whatsapp_sent_booking_${booking.id}`)
+      if (sent === '1') setWhatsappSent(true)
+    }
+  }, [booking])
 
   return (
     <Layout>
@@ -71,15 +81,40 @@ export default function PaymentSuccessPage() {
                 </p>
               </>
             )}
-            <p className="text-sm text-roma-muted mb-6">{t('payment.redirectWhatsApp')}</p>
-            {waLink && (
-              <a href={waLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-[#25D366] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#1fb855] transition-colors">
-                <MessageCircle className="w-5 h-5" /> {t('payment.openWhatsApp')}
-              </a>
+
+            {!whatsappSent ? (
+              <>
+                <p className="text-sm text-amber-200/90 mb-6 leading-relaxed">{t('payment.whatsappRequired')}</p>
+                {waLink && (
+                  <button
+                    type="button"
+                    onClick={handleWhatsAppClick}
+                    className="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-[#25D366] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#1fb855] transition-colors shadow-[0_0_24px_rgba(37,211,102,0.25)]"
+                  >
+                    <MessageCircle className="w-5 h-5" /> {t('payment.openWhatsApp')}
+                  </button>
+                )}
+                <p className="mt-4 text-xs text-roma-subtle">{t('payment.whatsappRequiredHint')}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-emerald-400 mb-6">{t('payment.whatsappSent')}</p>
+                {waLink && (
+                  <button
+                    type="button"
+                    onClick={handleWhatsAppClick}
+                    className="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-[#25D366]/90 text-white px-6 py-3 rounded-lg font-medium hover:bg-[#1fb855] transition-colors mb-4"
+                  >
+                    <MessageCircle className="w-5 h-5" /> {t('payment.openWhatsAppAgain')}
+                  </button>
+                )}
+                <div>
+                  <Link to="/my-bookings" className="text-sm text-primary hover:underline font-medium">
+                    {t('payment.viewBookings')}
+                  </Link>
+                </div>
+              </>
             )}
-            <div className="mt-4">
-              <Link to="/my-bookings" className="text-sm text-primary hover:underline">{t('payment.viewBookings')}</Link>
-            </div>
           </div>
         )}
       </div>
