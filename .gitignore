@@ -1,0 +1,21 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies & build output (also covered in subfolders)
+node_modules/
+vendor/
+dist/
+
+# Laravel runtime
+backend/storage/*.key
+backend/storage/pail
+backend/public/hot
+backend/public/storage
