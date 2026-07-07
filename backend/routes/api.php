@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\ContractTemplateController as AdminContractTempla
 use App\Http\Controllers\Admin\CustomerController as AdminCustomerController;
 use App\Http\Controllers\Admin\DriverController as AdminDriverController;
 use App\Http\Controllers\Admin\PaymentController as AdminPaymentController;
+use App\Http\Controllers\Admin\RevenueController as AdminRevenueController;
 use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AuthController;
@@ -32,6 +33,8 @@ Route::get('/payments/success', [PaymentController::class, 'success']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
+    Route::post('/auth/profile/license', [AuthController::class, 'uploadDrivingLicense']);
+    Route::delete('/auth/profile/license', [AuthController::class, 'deleteDrivingLicense']);
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::get('/bookings/{booking}', [BookingController::class, 'show']);
@@ -51,13 +54,16 @@ Route::prefix('admin')->group(function () {
         Route::get('/auth/me', [AdminAuthController::class, 'me']);
 
         Route::get('/analytics', [AdminAnalyticsController::class, 'index']);
+        Route::get('/revenue', [AdminRevenueController::class, 'index']);
 
         Route::apiResource('cars', AdminCarController::class);
         Route::apiResource('drivers', AdminDriverController::class);
         Route::apiResource('customers', AdminCustomerController::class)->only(['index', 'show', 'update']);
         Route::post('/customers/{customer}/reset-pin', [AdminCustomerController::class, 'resetPin']);
         Route::apiResource('bookings', AdminBookingController::class)->only(['index', 'show', 'update']);
+        Route::get('/bookings/{booking}/contract/pdf', [AdminBookingController::class, 'downloadContract']);
         Route::apiResource('contract-templates', AdminContractTemplateController::class);
+        Route::get('/contract-templates/{contract_template}/pdf', [AdminContractTemplateController::class, 'downloadPdf']);
 
         Route::get('/payments', [AdminPaymentController::class, 'index']);
         Route::get('/payments/{payment}', [AdminPaymentController::class, 'show']);

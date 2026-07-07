@@ -37,7 +37,10 @@ export default function BookingLocationField({
       <select
         id={id}
         value={selectKey}
-        onChange={(e) => onSelectKeyChange(e.target.value as BookingLocationKey | '')}
+        onChange={(e) => {
+          onSelectKeyChange(e.target.value as BookingLocationKey | '')
+          onCustomTextChange('')
+        }}
         className="input cursor-pointer"
         required
       >
@@ -48,6 +51,17 @@ export default function BookingLocationField({
           </option>
         ))}
       </select>
+
+      {selectKey === 'hotel' && (
+        <input
+          type="text"
+          value={customText}
+          onChange={(e) => onCustomTextChange(e.target.value)}
+          placeholder={t('booking.locations.hotelNamePlaceholder')}
+          className="input mt-3"
+          required
+        />
+      )}
 
       {selectKey === 'other' && (
         <input

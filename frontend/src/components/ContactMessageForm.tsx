@@ -100,7 +100,7 @@ export default function ContactMessageForm({ embedded = false }: ContactMessageF
 
         <button type="submit" className="btn-primary w-full py-3.5 text-sm gap-2 bg-[#25D366] hover:bg-[#1fb855] border-[#25D366] shadow-[0_4px_20px_rgba(37,211,102,0.2)]">
           <MessageCircle className="w-4 h-4" />
-          {t('contact.contactWhatsApp')}
+          {t('contact.sendToSupportTeam')}
         </button>
       </form>
     </div>

@@ -2,6 +2,7 @@ export const BOOKING_LOCATION_KEYS = [
   'salalah_airport',
   'salalah_city_center',
   'home_salalah',
+  'hotel',
   'other',
 ] as const
 
@@ -17,12 +18,22 @@ export function locationLabel(key: BookingLocationKey, t: Translate): string {
 export function resolveLocationValue(key: BookingLocationKey | '', custom: string, t: Translate): string {
   if (!key) return ''
   if (key === 'other') return custom.trim()
+  if (key === 'hotel') {
+    const name = custom.trim()
+    if (!name) return ''
+    return `${t('booking.locations.hotel')} — ${name}`
+  }
   return locationLabel(key, t)
 }
 
 export function parseStoredLocation(stored: string, t: Translate): { key: BookingLocationKey; custom: string } {
+  const hotelPrefix = `${t('booking.locations.hotel')} — `
+  if (stored.startsWith(hotelPrefix)) {
+    return { key: 'hotel', custom: stored.slice(hotelPrefix.length) }
+  }
+
   for (const key of BOOKING_LOCATION_KEYS) {
-    if (key === 'other') continue
+    if (key === 'other' || key === 'hotel') continue
     if (stored === t(`booking.locations.${key}`)) {
       return { key, custom: '' }
     }

@@ -19,3 +19,8 @@ export const GULF_DIAL_CODES = [
 ] as const
 
 export type GulfCountryKey = (typeof GULF_DIAL_CODES)[number]['countryKey']
+
+export function formatGulfPhone(dialCode: string, localNumber: string): string {
+  const digits = localNumber.replace(/\D/g, '')
+  return `${dialCode}${digits}`
+}

@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Carbon\Carbon;
 
 class Booking extends Model
 {
@@ -29,6 +31,10 @@ class Booking extends Model
         'payment_status',
         'cancelled_at',
         'refund_status',
+    ];
+
+    protected $appends = [
+        'rental_days',
     ];
 
     protected function casts(): array
@@ -67,5 +73,18 @@ class Booking extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    protected function rentalDays(): Attribute
+    {
+        return Attribute::get(function (): int {
+            if (! $this->pickup_date || ! $this->return_date) {
+                return 1;
+            }
+
+            $days = Carbon::parse($this->pickup_date)->diffInDays(Carbon::parse($this->return_date)) + 1;
+
+            return max(1, (int) $days);
+        });
     }
 }

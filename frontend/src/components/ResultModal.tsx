@@ -55,7 +55,7 @@ export default function ResultModal({
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-bold text-white tracking-wide mb-2" style={{ fontFamily: 'var(--font-display)' }}>{title}</h2>
-            <p className="text-sm text-roma-muted leading-relaxed">{message}</p>
+            <p className="text-sm text-roma-muted leading-relaxed whitespace-pre-line">{message}</p>
           </div>
         </div>
         <button type="button" onClick={onClose} className="btn-primary w-full mt-6 py-2.5 text-sm">{t('common.ok')}</button>

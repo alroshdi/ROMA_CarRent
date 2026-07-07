@@ -22,6 +22,9 @@ export interface Customer {
   id: number
   name: string
   phone: string
+  email: string | null
+  driving_license_path?: string | null
+  driving_license_url?: string | null
   is_active: boolean
 }
 
@@ -46,6 +49,8 @@ export interface Booking {
   payment_status: 'unpaid' | 'paid' | 'refunded'
   cancelled_at: string | null
   refund_status: 'none' | 'requested' | 'refunded' | 'rejected'
+  rental_days?: number
+  created_at?: string
   car?: Car
   driver?: Driver
   contract?: Contract
@@ -57,6 +62,7 @@ export interface Contract {
   booking_id: number
   pdf_path: string
   signed_pdf_path: string | null
+  signature_data?: string | null
   signed_at: string | null
 }
 
@@ -71,7 +77,9 @@ export interface Payment {
 export interface ContractTemplate {
   id: number
   title: string
-  content: string
+  content: string | null
+  pdf_path?: string | null
+  has_pdf?: boolean
   is_active: boolean
 }
 

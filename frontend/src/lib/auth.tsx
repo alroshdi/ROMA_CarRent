@@ -7,7 +7,7 @@ interface AuthContextType {
   token: string | null
   isAuthenticated: boolean
   login: (phone: string, pin: string) => Promise<void>
-  register: (name: string, phone: string, pin: string, pinConfirmation: string) => Promise<void>
+  register: (name: string, email: string, phone: string, pin: string, pinConfirmation: string) => Promise<void>
   logout: () => void
   setCustomer: (customer: Customer) => void
   refreshCustomer: () => Promise<void>
@@ -34,8 +34,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persist(data.customer, data.token)
   }
 
-  const register = async (name: string, phone: string, pin: string, pin_confirmation: string) => {
-    const { data } = await api.post('/auth/register', { name, phone, pin, pin_confirmation })
+  const register = async (name: string, email: string, phone: string, pin: string, pin_confirmation: string) => {
+    const { data } = await api.post('/auth/register', {
+      name,
+      email: email.trim().toLowerCase(),
+      phone,
+      pin,
+      pin_confirmation,
+    })
     persist(data.customer, data.token)
   }
 

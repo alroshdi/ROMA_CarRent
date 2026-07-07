@@ -18,6 +18,7 @@ import AdminCustomersPage from './pages/admin/AdminCustomersPage'
 import AdminBookingsPage from './pages/admin/AdminBookingsPage'
 import AdminTemplatesPage from './pages/admin/AdminTemplatesPage'
 import AdminPaymentsPage from './pages/admin/AdminPaymentsPage'
+import AdminRevenuePage from './pages/admin/AdminRevenuePage'
 import AdminSettingsPage from './pages/admin/AdminSettingsPage'
 
 function ProtectedAdmin({ children }: { children: React.ReactNode }) {
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<ProtectedAdmin><AdminLayout /></ProtectedAdmin>}>
             <Route index element={<AdminDashboardPage />} />
+            <Route path="revenue" element={<AdminRevenuePage />} />
             <Route path="cars" element={<AdminCarsPage />} />
             <Route path="drivers" element={<AdminDriversPage />} />
             <Route path="customers" element={<AdminCustomersPage />} />

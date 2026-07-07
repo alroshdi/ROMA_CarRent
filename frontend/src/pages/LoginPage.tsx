@@ -4,11 +4,15 @@ import Layout from '../components/Layout'
 import Logo from '../components/Logo'
 import { useAuth } from '../lib/auth'
 import { useTranslation } from '../i18n/LanguageProvider'
+import { GULF_DIAL_CODES, CONTACT_DIAL_CODE, formatGulfPhone } from '../lib/contact'
+import { isValidEmail, isValidGulfPhone, normalizeEmail } from '../lib/validation'
 
 export default function LoginPage() {
   const { t } = useTranslation()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [dialCode, setDialCode] = useState(CONTACT_DIAL_CODE)
   const [phone, setPhone] = useState('')
   const [pin, setPin] = useState('')
   const [pinConfirm, setPinConfirm] = useState('')
@@ -17,25 +21,49 @@ export default function LoginPage() {
   const { login, register } = useAuth()
   const navigate = useNavigate()
 
+  const validateCredentials = (forRegister: boolean): string | null => {
+    if (!isValidGulfPhone(dialCode, phone)) return t('login.invalidPhone')
+    if (forRegister && !isValidEmail(normalizeEmail(email))) return t('login.invalidEmail')
+    return null
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    const validationError = validateCredentials(mode === 'register')
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
     setLoading(true)
+    const fullPhone = formatGulfPhone(dialCode, phone)
+    const normalizedEmail = normalizeEmail(email)
+
     try {
       if (mode === 'login') {
-        await login(phone, pin)
+        await login(fullPhone, pin)
       } else {
+        if (!name.trim()) {
+          setError(t('login.nameRequired'))
+          setLoading(false)
+          return
+        }
         if (pin !== pinConfirm) {
           setError(t('login.pinMismatch'))
           setLoading(false)
           return
         }
-        await register(name, phone, pin, pinConfirm)
+        await register(name.trim(), normalizedEmail, fullPhone, pin, pinConfirm)
       }
       navigate('/')
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response?.data
-      setError(msg?.errors?.phone?.[0] || msg?.message || t('login.authFailed'))
+      const firstFieldError = msg?.errors
+        ? (msg.errors.email?.[0] || msg.errors.phone?.[0] || Object.values(msg.errors).flat()[0])
+        : null
+      setError(firstFieldError || msg?.message || t('login.authFailed'))
     } finally {
       setLoading(false)
     }
@@ -66,16 +94,60 @@ export default function LoginPage() {
 
           {error && <div className="alert-error mb-4">{error}</div>}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             {mode === 'register' && (
-              <div>
-                <label className="label">{t('login.fullName')}</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="input" required />
-              </div>
+              <>
+                <div>
+                  <label className="label" htmlFor="register-name">{t('login.fullName')}</label>
+                  <input id="register-name" type="text" value={name} onChange={(e) => setName(e.target.value)} className="input" required />
+                </div>
+                <div>
+                  <label className="label" htmlFor="auth-email">{t('login.emailAddress')}</label>
+                  <input
+                    id="auth-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t('login.emailPlaceholder')}
+                    className="input"
+                    dir="ltr"
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+              </>
             )}
             <div>
-              <label className="label">{t('login.phoneNumber')}</label>
-              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t('login.phonePlaceholder')} className="input" required />
+              <label className="label" htmlFor="login-phone">{t('login.phoneNumber')}</label>
+              <div className="input-phone-row">
+                <select
+                  id="login-dial-code"
+                  value={dialCode}
+                  onChange={(e) => setDialCode(e.target.value)}
+                  className="input input-dial-code"
+                  dir="ltr"
+                  aria-label={t('contact.form.countryCode')}
+                >
+                  {GULF_DIAL_CODES.map(({ code, countryKey }) => (
+                    <option key={code} value={code}>
+                      {code} {t(`contact.form.countries.${countryKey}`)}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  id="login-phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/[^\d\s-]/g, ''))}
+                  placeholder={t('login.phonePlaceholder')}
+                  className="input input-phone"
+                  dir="ltr"
+                  autoComplete="tel-national"
+                  inputMode="numeric"
+                  required
+                />
+              </div>
+              <p className="text-[11px] text-roma-subtle mt-1.5">{t('login.phoneHint')}</p>
             </div>
             <div>
               <label className="label">{t('login.pin')}</label>

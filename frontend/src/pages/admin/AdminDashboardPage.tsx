@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Car, Users, Calendar, DollarSign, LayoutDashboard } from 'lucide-react'
 import api from '../../lib/api'
 import { useTranslation } from '../../i18n/LanguageProvider'
@@ -64,10 +65,10 @@ export default function AdminDashboardPage() {
   }
 
   const cards = [
-    { labelKey: 'admin.totalCars', value: data.summary.total_cars, sub: t('admin.availableCount', { count: data.summary.available_cars }), icon: Car },
-    { labelKey: 'admin.customersLabel', value: data.summary.total_customers, sub: t('admin.registered'), icon: Users },
-    { labelKey: 'admin.bookingsLabel', value: data.summary.total_bookings, sub: t('admin.pendingCount', { count: data.summary.pending_bookings }), icon: Calendar },
-    { labelKey: 'admin.totalRevenue', value: `${data.summary.total_revenue.toFixed(2)} ${t('common.omr')}`, sub: t('admin.monthlyRevenue', { amount: data.summary.monthly_revenue.toFixed(2) }), icon: DollarSign },
+    { labelKey: 'admin.totalCars', value: data.summary.total_cars, sub: t('admin.availableCount', { count: data.summary.available_cars }), icon: Car, to: '/admin/cars' },
+    { labelKey: 'admin.customersLabel', value: data.summary.total_customers, sub: t('admin.registered'), icon: Users, to: '/admin/customers' },
+    { labelKey: 'admin.bookingsLabel', value: data.summary.total_bookings, sub: t('admin.pendingCount', { count: data.summary.pending_bookings }), icon: Calendar, to: '/admin/bookings' },
+    { labelKey: 'admin.totalRevenue', value: `${data.summary.total_revenue.toFixed(2)} ${t('common.omr')}`, sub: t('admin.monthlyRevenue', { amount: data.summary.monthly_revenue.toFixed(2) }), icon: DollarSign, to: '/admin/revenue' },
   ]
 
   const maxStatusCount = Math.max(...Object.values(data.bookings_by_status), 1)
@@ -81,8 +82,10 @@ export default function AdminDashboardPage() {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8">
-        {cards.map(({ labelKey, value, sub, icon }) => (
-          <AdminStatCard key={labelKey} label={t(labelKey)} value={value} sub={sub} icon={icon} />
+        {cards.map(({ labelKey, value, sub, icon, to }) => (
+          <Link key={labelKey} to={to} className="block">
+            <AdminStatCard label={t(labelKey)} value={value} sub={sub} icon={icon} />
+          </Link>
         ))}
       </div>
 
@@ -110,15 +113,22 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="card-elevated p-5 md:p-6 border-primary/10">
-          <h2 className="font-bold mb-5 text-white tracking-wide uppercase text-sm" style={{ fontFamily: 'var(--font-display)' }}>
+          <h2 className="font-bold mb-5 text-white tracking-wide uppercase text-sm flex items-center justify-between gap-3" style={{ fontFamily: 'var(--font-display)' }}>
             {t('admin.recentBookings')}
+            <Link to="/admin/bookings" className="text-xs text-primary hover:underline normal-case tracking-normal font-medium">
+              {t('admin.viewAll')}
+            </Link>
           </h2>
           <div className="space-y-3">
             {data.recent_bookings.length === 0 ? (
               <p className="text-sm text-roma-muted">{t('admin.noRecentBookings')}</p>
             ) : (
               data.recent_bookings.map((b) => (
-                <div key={b.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-roma-dark/50 border border-roma-border hover:border-primary/25 transition-colors">
+                <Link
+                  key={b.id}
+                  to="/admin/bookings"
+                  className="flex items-center justify-between gap-3 p-3 rounded-lg bg-roma-dark/50 border border-roma-border hover:border-primary/25 transition-colors"
+                >
                   <div className="min-w-0">
                     <span className="font-bold text-primary text-sm">#{b.id}</span>
                     <p className="text-sm text-white truncate mt-0.5">{b.customer?.name}</p>
@@ -127,7 +137,7 @@ export default function AdminDashboardPage() {
                   <span className={`badge border shrink-0 text-[10px] ${statusColors[b.status] || 'bg-roma-elevated text-roma-muted border-roma-border'}`}>
                     {tStatus(b.status)}
                   </span>
-                </div>
+                </Link>
               ))
             )}
           </div>

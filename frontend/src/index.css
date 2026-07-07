@@ -124,6 +124,10 @@ h1, h2, h3, h4, h5, h6 {
   @apply w-auto flex-1 min-w-0;
 }
 
+.input-phone-row .input-dial-code {
+  @apply w-auto shrink-0 min-w-[5.5rem] max-w-[6.25rem] px-2 text-sm;
+}
+
 input[type='date'],
 input[type='time'] {
   color-scheme: dark;

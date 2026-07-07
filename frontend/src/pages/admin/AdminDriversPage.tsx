@@ -6,6 +6,7 @@ import { useTranslation } from '../../i18n/LanguageProvider'
 import AdminPageHeader from '../../components/admin/AdminPageHeader'
 import AdminFormCard from '../../components/admin/AdminFormCard'
 import AdminTableShell from '../../components/admin/AdminTableShell'
+import ConfirmModal from '../../components/ConfirmModal'
 
 const empty = { name: '', phone: '', license_number: '', status: 'active' as const }
 const fieldKeys = ['name', 'phone', 'license_number'] as const
@@ -15,6 +16,8 @@ export default function AdminDriversPage() {
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [editing, setEditing] = useState<Partial<Driver> | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Driver | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const fetch = () => api.get('/admin/drivers').then(({ data }) => setDrivers(data.drivers || []))
   useEffect(() => { fetch() }, [])
@@ -26,14 +29,30 @@ export default function AdminDriversPage() {
     setShowForm(false); setEditing(null); fetch()
   }
 
-  const remove = async (id: number) => {
-    if (!confirm(t('admin.deleteDriver'))) return
-    await api.delete(`/admin/drivers/${id}`)
-    fetch()
+  const confirmDelete = async () => {
+    if (!deleteTarget?.id) return
+    setDeleting(true)
+    try {
+      await api.delete(`/admin/drivers/${deleteTarget.id}`)
+      setDeleteTarget(null)
+      fetch()
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
     <div>
+      <ConfirmModal
+        open={!!deleteTarget}
+        title={t('common.delete')}
+        message={deleteTarget ? t('admin.deleteDriverNamed', { name: deleteTarget.name }) : t('admin.deleteDriver')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => !deleting && setDeleteTarget(null)}
+      />
       <AdminPageHeader
         icon={UserCircle}
         title={t('admin.drivers')}
@@ -81,7 +100,7 @@ export default function AdminDriversPage() {
                 <td><span className={`badge border ${d.status === 'active' ? 'bg-emerald-950/50 text-emerald-300 border-emerald-800/40' : 'bg-roma-elevated text-roma-muted border-roma-border'}`}>{tStatus(d.status)}</span></td>
                 <td className="text-end">
                   <button onClick={() => { setEditing(d); setShowForm(true) }} className="p-2 rounded-lg text-primary hover:bg-primary/10 me-1"><Pencil className="w-4 h-4 inline" /></button>
-                  <button onClick={() => remove(d.id)} className="p-2 rounded-lg text-red-400 hover:bg-red-950/30"><Trash2 className="w-4 h-4 inline" /></button>
+                  <button onClick={() => setDeleteTarget(d)} className="p-2 rounded-lg text-red-400 hover:bg-red-950/30"><Trash2 className="w-4 h-4 inline" /></button>
                 </td>
               </tr>
             ))}

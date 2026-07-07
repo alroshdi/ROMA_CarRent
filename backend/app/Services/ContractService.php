@@ -12,6 +12,10 @@ class ContractService
 {
     public function renderTemplate(ContractTemplate $template, Booking $booking): string
     {
+        if ($template->usesPdf()) {
+            return '<p>See attached rental agreement PDF.</p>';
+        }
+
         $variables = $this->buildVariables($booking);
 
         $content = $template->content;
@@ -25,12 +29,17 @@ class ContractService
     public function generatePdf(Booking $booking, ?ContractTemplate $template = null): Contract
     {
         $template = $template ?? ContractTemplate::where('is_active', true)->firstOrFail();
-        $html = $this->wrapHtml($this->renderTemplate($template, $booking));
 
-        $filename = 'contracts/booking_'.$booking->id.'_'.time().'.pdf';
-        $pdf = Pdf::loadHTML($html);
         Storage::disk('local')->makeDirectory('contracts');
-        Storage::disk('local')->put($filename, $pdf->output());
+        $filename = 'contracts/booking_'.$booking->id.'_'.time().'.pdf';
+
+        if ($template->usesPdf() && Storage::disk('local')->exists($template->pdf_path)) {
+            Storage::disk('local')->copy($template->pdf_path, $filename);
+        } else {
+            $html = $this->wrapHtml($this->renderTemplate($template, $booking));
+            $pdf = Pdf::loadHTML($html);
+            Storage::disk('local')->put($filename, $pdf->output());
+        }
 
         return Contract::updateOrCreate(
             ['booking_id' => $booking->id],
@@ -48,16 +57,20 @@ class ContractService
 
         $this->storeSignatureImage($booking->id, $signatureData);
 
-        $html = $this->wrapHtml(
-            $this->renderTemplate($template, $booking),
-            $signatureData,
-            $booking->customer->name
-        );
-
         $signedFilename = 'contracts/booking_'.$booking->id.'_signed_'.time().'.pdf';
-        $pdf = Pdf::loadHTML($html);
-        Storage::disk('local')->makeDirectory('contracts');
-        Storage::disk('local')->put($signedFilename, $pdf->output());
+
+        if ($template->usesPdf() && $contract->pdf_path && Storage::disk('local')->exists($contract->pdf_path)) {
+            Storage::disk('local')->copy($contract->pdf_path, $signedFilename);
+        } else {
+            $html = $this->wrapHtml(
+                $this->renderTemplate($template, $booking),
+                $signatureData,
+                $booking->customer->name
+            );
+            $pdf = Pdf::loadHTML($html);
+            Storage::disk('local')->makeDirectory('contracts');
+            Storage::disk('local')->put($signedFilename, $pdf->output());
+        }
 
         $contract->update([
             'signature_data' => $signatureData,

@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\LoginAttempt;
+use App\Rules\GulfPhoneNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -19,14 +21,17 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20|unique:customers,phone',
+            'email' => 'required|email|max:255|unique:customers,email',
+            'phone' => ['required', 'string', 'max:20', 'unique:customers,phone', new GulfPhoneNumber],
             'pin' => 'required|string|min:4|max:6|confirmed',
         ]);
 
         $customer = Customer::create([
             'name' => $validated['name'],
+            'email' => strtolower($validated['email']),
             'phone' => $validated['phone'],
             'pin' => $validated['pin'],
+            'pin_plain' => $validated['pin'],
         ]);
 
         $token = $customer->createToken('customer-token')->plainTextToken;
@@ -41,7 +46,7 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'phone' => 'required|string',
+            'phone' => ['required', 'string', 'max:20', new GulfPhoneNumber],
             'pin' => 'required|string',
         ]);
 
@@ -87,7 +92,8 @@ class AuthController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'phone' => 'sometimes|required|string|max:20|unique:customers,phone,'.$customer->id,
+            'email' => 'sometimes|required|email|max:255|unique:customers,email,'.$customer->id,
+            'phone' => ['sometimes', 'required', 'string', 'max:20', 'unique:customers,phone,'.$customer->id, new GulfPhoneNumber],
             'current_pin' => 'required_with:pin|string',
             'pin' => 'sometimes|required|string|min:4|max:6|confirmed',
         ]);
@@ -99,6 +105,7 @@ class AuthController extends Controller
                 ]);
             }
             $customer->pin = $validated['pin'];
+            $customer->pin_plain = $validated['pin'];
         }
 
         if (isset($validated['name'])) {
@@ -109,10 +116,50 @@ class AuthController extends Controller
             $customer->phone = $validated['phone'];
         }
 
+        if (isset($validated['email'])) {
+            $customer->email = strtolower($validated['email']);
+        }
+
         $customer->save();
 
         return response()->json([
             'message' => 'Profile updated successfully.',
+            'customer' => $customer->fresh(),
+        ]);
+    }
+
+    public function uploadDrivingLicense(Request $request): JsonResponse
+    {
+        $customer = $this->getCustomer($request);
+
+        $validated = $request->validate([
+            'license' => 'required|image|mimes:jpeg,jpg,png,webp|max:5120',
+        ]);
+
+        if ($customer->driving_license_path) {
+            Storage::disk('public')->delete($customer->driving_license_path);
+        }
+
+        $path = $request->file('license')->store("customers/{$customer->id}", 'public');
+        $customer->update(['driving_license_path' => $path]);
+
+        return response()->json([
+            'message' => 'Driving license uploaded successfully.',
+            'customer' => $customer->fresh(),
+        ]);
+    }
+
+    public function deleteDrivingLicense(Request $request): JsonResponse
+    {
+        $customer = $this->getCustomer($request);
+
+        if ($customer->driving_license_path) {
+            Storage::disk('public')->delete($customer->driving_license_path);
+            $customer->update(['driving_license_path' => null]);
+        }
+
+        return response()->json([
+            'message' => 'Driving license removed.',
             'customer' => $customer->fresh(),
         ]);
     }
