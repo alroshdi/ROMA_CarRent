@@ -21,22 +21,23 @@ class CarController extends Controller
         $query = Car::where('status', 'available');
 
         if ($request->filled('pickup_date') && $request->filled('return_date')) {
-            $cars = $query->get()->filter(function (Car $car) use ($request) {
-                return $this->bookingService->isAvailable(
-                    $car->id,
-                    $request->input('pickup_date'),
-                    $request->input('return_date')
-                );
-            })->values();
-        } else {
-            $cars = $query->get();
+            $pickupDate = $request->input('pickup_date');
+            $returnDate = $request->input('return_date');
+
+            $query->whereDoesntHave('bookings', function ($q) use ($pickupDate, $returnDate) {
+                $this->bookingService->applyOverlapConstraints($q, $pickupDate, $returnDate);
+            });
         }
 
-        return response()->json(['cars' => $cars]);
+        return response()->json(['cars' => $query->get()]);
     }
 
     public function show(Car $car): JsonResponse
     {
+        if ($car->status !== 'available') {
+            return response()->json(['message' => 'Car not found.'], 404);
+        }
+
         return response()->json(['car' => $car]);
     }
 }

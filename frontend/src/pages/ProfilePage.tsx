@@ -46,6 +46,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploadingLicense, setUploadingLicense] = useState(false)
+  const [licensePreview, setLicensePreview] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -62,6 +63,25 @@ export default function ProfilePage() {
       .catch(() => setError(t('profile.loadFailed')))
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!customer?.has_driving_license) {
+      setLicensePreview(null)
+      return
+    }
+
+    let objectUrl: string | null = null
+    api.get('/auth/profile/license', { responseType: 'blob' })
+      .then(({ data }) => {
+        objectUrl = URL.createObjectURL(data)
+        setLicensePreview(objectUrl)
+      })
+      .catch(() => setLicensePreview(null))
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [customer?.has_driving_license, customer?.updated_at])
 
   const bookingStats = useMemo(() => ({
     total: bookings.length,
@@ -116,6 +136,9 @@ export default function ProfilePage() {
       }
 
       const { data } = await api.put('/auth/profile', payload)
+      if (data.token) {
+        localStorage.setItem('customer_token', data.token)
+      }
       setCustomer(data.customer)
       setName(data.customer.name)
       setEmail(data.customer.email || '')
@@ -297,20 +320,15 @@ export default function ProfilePage() {
               </h3>
               <p className="text-xs text-roma-muted mb-5 leading-relaxed">{t('profile.drivingLicenseHint')}</p>
 
-              {customer?.driving_license_url ? (
+              {customer?.has_driving_license && licensePreview ? (
                 <div className="space-y-4">
-                  <a
-                    href={customer.driving_license_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block overflow-hidden rounded-xl border border-roma-border bg-roma-dark"
-                  >
+                  <div className="block overflow-hidden rounded-xl border border-roma-border bg-roma-dark">
                     <img
-                      src={customer.driving_license_url}
+                      src={licensePreview}
                       alt={t('profile.drivingLicense')}
                       className="w-full max-h-56 object-contain bg-black/30"
                     />
-                  </a>
+                  </div>
                   <div className="flex flex-wrap gap-3">
                     <button
                       type="button"

@@ -9,6 +9,20 @@ use Illuminate\Support\Str;
 
 class ThawaniService
 {
+    public function shouldAutoConfirmMock(): bool
+    {
+        return config('carrent.thawani.mock') && app()->environment('local');
+    }
+
+    public function buildCheckoutUrl(string $sessionId): string
+    {
+        if (config('carrent.thawani.mock')) {
+            return config('carrent.frontend_url').'/payment/success?session_id='.$sessionId;
+        }
+
+        return config('carrent.thawani.checkout_url').'/pay/'.$sessionId.'?key='.config('carrent.thawani.publishable_key');
+    }
+
     public function createCheckoutSession(Booking $booking): array
     {
         if (config('carrent.thawani.mock')) {
@@ -16,7 +30,7 @@ class ThawaniService
 
             return [
                 'session_id' => $sessionId,
-                'checkout_url' => config('carrent.frontend_url').'/payment/success?session_id='.$sessionId,
+                'checkout_url' => $this->buildCheckoutUrl($sessionId),
                 'raw_response' => [
                     'mock' => true,
                     'session_id' => $sessionId,
@@ -51,7 +65,7 @@ class ThawaniService
 
         return [
             'session_id' => $data['session_id'],
-            'checkout_url' => config('carrent.thawani.checkout_url').'/pay/'.$data['session_id'].'?key='.config('carrent.thawani.publishable_key'),
+            'checkout_url' => $this->buildCheckoutUrl($data['session_id']),
             'raw_response' => $response->json(),
         ];
     }
@@ -59,7 +73,13 @@ class ThawaniService
     public function verifyWebhook(array $payload, ?string $signature = null): bool
     {
         if (config('carrent.thawani.mock')) {
-            return true;
+            if (! app()->environment('local')) {
+                return false;
+            }
+
+            $mockSecret = config('carrent.thawani.mock_webhook_secret');
+
+            return $mockSecret && $signature && hash_equals($mockSecret, $signature);
         }
 
         $secret = config('carrent.thawani.webhook_secret');

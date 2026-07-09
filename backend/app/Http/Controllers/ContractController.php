@@ -40,7 +40,7 @@ class ContractController extends Controller
         $this->authorizeCustomerBooking($request, $booking);
 
         $validated = $request->validate([
-            'signature_data' => 'required|string|starts_with:data:image/',
+            'signature_data' => 'required|string|starts_with:data:image/|max:500000',
         ]);
 
         try {

@@ -623,6 +623,8 @@ export const en: TranslationDict = {
     pinCode: 'PIN',
     pinPlaceholder: '4–6 digits',
     pinEditHint: 'Leave blank to keep the current PIN, or enter a new one.',
+    pinHidden: 'Hidden',
+    licenseViewFailed: 'Could not load driving license.',
     showPin: 'Show PIN',
     hidePin: 'Hide PIN',
     drivingLicense: 'Driving licence',

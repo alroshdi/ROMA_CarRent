@@ -623,6 +623,8 @@ export const ar: TranslationDict = {
     pinCode: 'PIN',
     pinPlaceholder: '4–6 أرقام',
     pinEditHint: 'اتركه فارغاً للإبقاء على PIN الحالي، أو أدخل رقماً جديداً.',
+    pinHidden: 'مخفي',
+    licenseViewFailed: 'تعذّر تحميل رخصة القيادة.',
     showPin: 'إظهار PIN',
     hidePin: 'إخفاء PIN',
     drivingLicense: 'رخصة القيادة',

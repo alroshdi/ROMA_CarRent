@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AuthController extends Controller
 {
@@ -31,7 +32,6 @@ class AuthController extends Controller
             'email' => strtolower($validated['email']),
             'phone' => $validated['phone'],
             'pin' => $validated['pin'],
-            'pin_plain' => $validated['pin'],
         ]);
 
         $token = $customer->createToken('customer-token')->plainTextToken;
@@ -105,7 +105,7 @@ class AuthController extends Controller
                 ]);
             }
             $customer->pin = $validated['pin'];
-            $customer->pin_plain = $validated['pin'];
+            $customer->tokens()->delete();
         }
 
         if (isset($validated['name'])) {
@@ -122,25 +122,32 @@ class AuthController extends Controller
 
         $customer->save();
 
-        return response()->json([
-            'message' => 'Profile updated successfully.',
-            'customer' => $customer->fresh(),
-        ]);
+        $response = ['message' => 'Profile updated successfully.', 'customer' => $customer->fresh()];
+
+        if (isset($validated['pin'])) {
+            $response['token'] = $customer->createToken('customer-token')->plainTextToken;
+        }
+
+        return response()->json($response);
     }
 
     public function uploadDrivingLicense(Request $request): JsonResponse
     {
         $customer = $this->getCustomer($request);
 
-        $validated = $request->validate([
+        $request->validate([
             'license' => 'required|image|mimes:jpeg,jpg,png,webp|max:5120',
         ]);
 
         if ($customer->driving_license_path) {
-            Storage::disk('public')->delete($customer->driving_license_path);
+            if (Storage::disk('local')->exists($customer->driving_license_path)) {
+                Storage::disk('local')->delete($customer->driving_license_path);
+            } elseif (Storage::disk('public')->exists($customer->driving_license_path)) {
+                Storage::disk('public')->delete($customer->driving_license_path);
+            }
         }
 
-        $path = $request->file('license')->store("customers/{$customer->id}", 'public');
+        $path = $request->file('license')->store("customers/{$customer->id}", 'local');
         $customer->update(['driving_license_path' => $path]);
 
         return response()->json([
@@ -149,12 +156,35 @@ class AuthController extends Controller
         ]);
     }
 
+    public function downloadDrivingLicense(Request $request): StreamedResponse|JsonResponse
+    {
+        $customer = $this->getCustomer($request);
+
+        if (! $customer->driving_license_path) {
+            return response()->json(['message' => 'Driving license not found.'], 404);
+        }
+
+        $disk = Storage::disk('local')->exists($customer->driving_license_path) ? 'local' : 'public';
+        if (! Storage::disk($disk)->exists($customer->driving_license_path)) {
+            return response()->json(['message' => 'Driving license not found.'], 404);
+        }
+
+        return Storage::disk($disk)->download(
+            $customer->driving_license_path,
+            'driving_license_'.$customer->id.'.'.pathinfo($customer->driving_license_path, PATHINFO_EXTENSION),
+        );
+    }
+
     public function deleteDrivingLicense(Request $request): JsonResponse
     {
         $customer = $this->getCustomer($request);
 
         if ($customer->driving_license_path) {
-            Storage::disk('public')->delete($customer->driving_license_path);
+            if (Storage::disk('local')->exists($customer->driving_license_path)) {
+                Storage::disk('local')->delete($customer->driving_license_path);
+            } elseif (Storage::disk('public')->exists($customer->driving_license_path)) {
+                Storage::disk('public')->delete($customer->driving_license_path);
+            }
             $customer->update(['driving_license_path' => null]);
         }
 

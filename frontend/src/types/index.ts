@@ -23,9 +23,9 @@ export interface Customer {
   name: string
   phone: string
   email: string | null
-  driving_license_path?: string | null
-  driving_license_url?: string | null
+  has_driving_license?: boolean
   is_active: boolean
+  updated_at?: string
 }
 
 export interface Booking {

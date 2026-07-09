@@ -25,15 +25,15 @@ Route::get('/cars', [CarController::class, 'index']);
 Route::get('/cars/{car}', [CarController::class, 'show']);
 Route::get('/drivers', [DriverController::class, 'index']);
 Route::post('/auth/register', [AuthController::class, 'register']);
-Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/payments/webhook', [PaymentController::class, 'webhook']);
-Route::get('/payments/success', [PaymentController::class, 'success']);
 
 // Customer authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
     Route::post('/auth/profile/license', [AuthController::class, 'uploadDrivingLicense']);
+    Route::get('/auth/profile/license', [AuthController::class, 'downloadDrivingLicense']);
     Route::delete('/auth/profile/license', [AuthController::class, 'deleteDrivingLicense']);
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::get('/bookings', [BookingController::class, 'index']);
@@ -43,11 +43,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings/{booking}/sign', [ContractController::class, 'sign']);
     Route::get('/bookings/{booking}/contract/pdf', [ContractController::class, 'downloadPdf']);
     Route::post('/payments/checkout', [PaymentController::class, 'checkout']);
+    Route::get('/payments/success', [PaymentController::class, 'success']);
 });
 
 // Admin routes
 Route::prefix('admin')->group(function () {
-    Route::post('/auth/login', [AdminAuthController::class, 'login']);
+    Route::post('/auth/login', [AdminAuthController::class, 'login'])->middleware('throttle:5,1');
 
     Route::middleware(['auth:sanctum', 'admin'])->group(function () {
         Route::post('/auth/logout', [AdminAuthController::class, 'logout']);
@@ -60,6 +61,7 @@ Route::prefix('admin')->group(function () {
         Route::apiResource('drivers', AdminDriverController::class);
         Route::apiResource('customers', AdminCustomerController::class)->only(['index', 'show', 'update']);
         Route::post('/customers/{customer}/reset-pin', [AdminCustomerController::class, 'resetPin']);
+        Route::get('/customers/{customer}/license', [AdminCustomerController::class, 'downloadLicense']);
         Route::apiResource('bookings', AdminBookingController::class)->only(['index', 'show', 'update']);
         Route::get('/bookings/{booking}/contract/pdf', [AdminBookingController::class, 'downloadContract']);
         Route::apiResource('contract-templates', AdminContractTemplateController::class);

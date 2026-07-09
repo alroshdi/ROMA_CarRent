@@ -31,12 +31,10 @@ function bookingDays(booking: AdminBooking): number {
 }
 
 const statusOptions = ['pending', 'confirmed', 'active', 'completed', 'cancelled'] as const
-const paymentOptions = ['unpaid', 'paid', 'refunded'] as const
 
 type EditForm = {
   id: number
   status: Booking['status']
-  payment_status: Booking['payment_status']
   rental_days: number
   with_driver: boolean
 }
@@ -63,7 +61,6 @@ export default function AdminBookingsPage() {
     setEditing({
       id: booking.id,
       status: booking.status,
-      payment_status: booking.payment_status,
       rental_days: bookingDays(booking),
       with_driver: booking.with_driver,
     })
@@ -80,7 +77,6 @@ export default function AdminBookingsPage() {
     try {
       const { data } = await api.put(`/admin/bookings/${editing.id}`, {
         status: editing.status,
-        payment_status: editing.payment_status,
         rental_days: editing.rental_days,
         with_driver: editing.with_driver,
       })
@@ -163,15 +159,9 @@ export default function AdminBookingsPage() {
             </div>
             <div>
               <label className="label">{t('common.payment')}</label>
-              <select
-                className="input text-sm"
-                value={editing.payment_status}
-                onChange={(e) => setEditing({ ...editing, payment_status: e.target.value as Booking['payment_status'] })}
-              >
-                {paymentOptions.map((s) => (
-                  <option key={s} value={s}>{tStatus(s)}</option>
-                ))}
-              </select>
+              <p className="input text-sm bg-roma-dark/50 text-roma-muted cursor-not-allowed">
+                {tStatus(editingBooking.payment_status)}
+              </p>
             </div>
             <div>
               <label className="label">{t('admin.rentalDays')}</label>

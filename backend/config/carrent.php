@@ -8,7 +8,8 @@ return [
     'driver_daily_rate' => (float) env('DRIVER_DAILY_RATE', 25),
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
     'thawani' => [
-        'mock' => env('THAWANI_MOCK', true),
+        'mock' => env('THAWANI_MOCK', false),
+        'mock_webhook_secret' => env('THAWANI_MOCK_WEBHOOK_SECRET', 'local-mock-secret'),
         'secret_key' => env('THAWANI_SECRET_KEY'),
         'publishable_key' => env('THAWANI_PUBLISHABLE_KEY'),
         'webhook_secret' => env('THAWANI_WEBHOOK_SECRET'),

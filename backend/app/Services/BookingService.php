@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\Car;
 use App\Models\Setting;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 
 class BookingService
 {
@@ -16,18 +17,23 @@ class BookingService
 
     public function hasOverlap(int $carId, string $pickupDate, string $returnDate, ?int $excludeBookingId = null): bool
     {
-        $query = Booking::where('car_id', $carId)
-            ->whereNotIn('status', ['cancelled', 'completed'])
-            ->where(function ($q) use ($pickupDate, $returnDate) {
-                $q->where('pickup_date', '<=', $returnDate)
-                    ->where('return_date', '>=', $pickupDate);
-            });
+        $query = Booking::where('car_id', $carId);
+        $this->applyOverlapConstraints($query, $pickupDate, $returnDate, $excludeBookingId);
+
+        return $query->exists();
+    }
+
+    public function applyOverlapConstraints(Builder $query, string $pickupDate, string $returnDate, ?int $excludeBookingId = null): Builder
+    {
+        $query->whereNotIn('status', ['cancelled', 'completed'])
+            ->where('pickup_date', '<=', $returnDate)
+            ->where('return_date', '>=', $pickupDate);
 
         if ($excludeBookingId) {
             $query->where('id', '!=', $excludeBookingId);
         }
 
-        return $query->exists();
+        return $query;
     }
 
     public function calculatePrice(Car $car, string $pickupDate, string $returnDate, bool $withDriver = false): array

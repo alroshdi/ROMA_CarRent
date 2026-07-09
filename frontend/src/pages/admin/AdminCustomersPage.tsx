@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { KeyRound, Users, Pencil, IdCard, ExternalLink } from 'lucide-react'
+import { KeyRound, Users, Pencil, IdCard } from 'lucide-react'
 import api from '../../lib/api'
 import type { Customer } from '../../types'
 import { useTranslation } from '../../i18n/LanguageProvider'
@@ -10,16 +10,17 @@ import ConfirmModal from '../../components/ConfirmModal'
 import ResultModal from '../../components/ResultModal'
 
 type AdminCustomer = Customer & {
-  pin?: string | null
   bookings_count?: number
   created_at?: string
   updated_at?: string
 }
 
+type EditCustomerForm = Partial<AdminCustomer> & { pin?: string }
+
 export default function AdminCustomersPage() {
   const { t, formatDate } = useTranslation()
   const [customers, setCustomers] = useState<AdminCustomer[]>([])
-  const [editing, setEditing] = useState<Partial<AdminCustomer> | null>(null)
+  const [editing, setEditing] = useState<EditCustomerForm | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [resetPinTarget, setResetPinTarget] = useState<AdminCustomer | null>(null)
@@ -39,7 +40,6 @@ export default function AdminCustomersPage() {
       name: customer.name,
       email: customer.email || '',
       phone: customer.phone,
-      pin: customer.pin || '',
       is_active: customer.is_active,
     })
     setError('')
@@ -95,6 +95,17 @@ export default function AdminCustomersPage() {
   const toggleActive = async (customer: AdminCustomer) => {
     const { data } = await api.put(`/admin/customers/${customer.id}`, { is_active: !customer.is_active })
     setCustomers((prev) => prev.map((c) => (c.id === customer.id ? data.customer : c)))
+  }
+
+  const viewLicense = async (customerId: number) => {
+    try {
+      const { data } = await api.get(`/admin/customers/${customerId}/license`, { responseType: 'blob' })
+      const url = URL.createObjectURL(data)
+      window.open(url, '_blank', 'noopener,noreferrer')
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch {
+      setError(t('admin.licenseViewFailed'))
+    }
   }
 
   return (
@@ -199,22 +210,18 @@ export default function AdminCustomersPage() {
                 <td dir="ltr" className="whitespace-nowrap">{c.phone}</td>
                 <td dir="ltr" className="max-w-[180px] truncate">{c.email || '—'}</td>
                 <td>
-                  <span className="font-mono text-white tracking-widest" dir="ltr">
-                    {c.pin || '—'}
-                  </span>
+                  <span className="text-roma-subtle text-xs">{t('admin.pinHidden')}</span>
                 </td>
                 <td>
-                  {c.driving_license_url ? (
-                    <a
-                      href={c.driving_license_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {c.has_driving_license ? (
+                    <button
+                      type="button"
+                      onClick={() => viewLicense(c.id)}
                       className="inline-flex items-center gap-1 text-primary hover:underline text-xs"
                     >
                       <IdCard className="w-3.5 h-3.5" />
                       {t('admin.viewLicense')}
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                    </button>
                   ) : (
                     <span className="text-roma-subtle text-xs">—</span>
                   )}

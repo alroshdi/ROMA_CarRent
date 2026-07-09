@@ -12,11 +12,19 @@ class DriverController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $drivers = Driver::when($request->status, fn ($q, $status) => $q->where('status', $status))
+        $paginator = Driver::when($request->status, fn ($q, $status) => $q->where('status', $status))
             ->latest()
-            ->get();
+            ->paginate(20);
 
-        return response()->json(['drivers' => $drivers]);
+        return response()->json([
+            'drivers' => $paginator->items(),
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
     }
 
     public function store(Request $request): JsonResponse

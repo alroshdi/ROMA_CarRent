@@ -120,10 +120,13 @@ class RevenueController extends Controller
     {
         $rangeStart = $from ?? now()->subMonths(11)->startOfMonth();
         $rangeEnd = $to ?? now()->endOfDay();
+        $driver = DB::connection()->getDriverName();
 
-        $labelExpr = match ($period) {
-            'day' => "date(created_at)",
-            'year' => "strftime('%Y', created_at)",
+        $labelExpr = match (true) {
+            $period === 'day' => 'DATE(created_at)',
+            $period === 'year' && $driver === 'mysql' => "DATE_FORMAT(created_at, '%Y')",
+            $period === 'year' => "strftime('%Y', created_at)",
+            $driver === 'mysql' => "DATE_FORMAT(created_at, '%Y-%m')",
             default => "strftime('%Y-%m', created_at)",
         };
 

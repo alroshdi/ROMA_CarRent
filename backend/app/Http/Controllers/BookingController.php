@@ -3,14 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
-use App\Models\Customer;
 use App\Models\Car;
+use App\Models\Customer;
 use App\Models\Driver;
 use App\Policies\BookingCancellationPolicy;
 use App\Services\BookingService;
 use App\Services\ThawaniService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class BookingController extends Controller
 {
@@ -80,25 +82,27 @@ class BookingController extends Controller
             $withDriver,
         );
 
-        $booking = Booking::create([
-            'customer_id' => $customer->id,
-            'car_id' => $car->id,
-            'driver_id' => $withDriver ? ($validated['driver_id'] ?? null) : null,
-            'pickup_date' => $validated['pickup_date'],
-            'pickup_time' => $validated['pickup_time'] ?? null,
-            'return_date' => $validated['return_date'],
-            'return_time' => $validated['return_time'] ?? null,
-            'pickup_location' => $validated['pickup_location'],
-            'dropoff_location' => $validated['dropoff_location'],
-            'additional_notes' => $validated['additional_notes'] ?? null,
-            'with_driver' => $withDriver,
-            'driver_hours' => $withDriver ? $pricing['days'] : null,
-            'driver_cost' => $pricing['driver_cost'],
-            'car_cost' => $pricing['car_cost'],
-            'total_price' => $pricing['total_price'],
-            'status' => 'pending',
-            'payment_status' => 'unpaid',
-        ]);
+        $booking = DB::transaction(function () use ($customer, $car, $validated, $withDriver, $pricing) {
+            return Booking::create([
+                'customer_id' => $customer->id,
+                'car_id' => $car->id,
+                'driver_id' => $withDriver ? ($validated['driver_id'] ?? null) : null,
+                'pickup_date' => $validated['pickup_date'],
+                'pickup_time' => $validated['pickup_time'] ?? null,
+                'return_date' => $validated['return_date'],
+                'return_time' => $validated['return_time'] ?? null,
+                'pickup_location' => $validated['pickup_location'],
+                'dropoff_location' => $validated['dropoff_location'],
+                'additional_notes' => $validated['additional_notes'] ?? null,
+                'with_driver' => $withDriver,
+                'driver_hours' => $withDriver ? $pricing['days'] : null,
+                'driver_cost' => $pricing['driver_cost'],
+                'car_cost' => $pricing['car_cost'],
+                'total_price' => $pricing['total_price'],
+                'status' => 'pending',
+                'payment_status' => 'unpaid',
+            ]);
+        });
 
         $booking->load(['car', 'driver']);
 
@@ -112,12 +116,20 @@ class BookingController extends Controller
     {
         $customer = $this->getCustomer($request);
 
-        $bookings = Booking::with(['car', 'driver', 'contract', 'payments'])
+        $paginator = Booking::with(['car', 'driver', 'contract', 'payments'])
             ->where('customer_id', $customer->id)
             ->latest()
-            ->get();
+            ->paginate(20);
 
-        return response()->json(['bookings' => $bookings]);
+        return response()->json([
+            'bookings' => $paginator->items(),
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
     }
 
     public function show(Request $request, Booking $booking): JsonResponse
@@ -160,7 +172,12 @@ class BookingController extends Controller
                     'refund_status' => 'refunded',
                 ]);
             } catch (\Exception $e) {
-                // Refund request recorded; admin can process manually
+                report($e);
+                Log::warning('Refund failed for booking cancellation.', [
+                    'booking_id' => $booking->id,
+                    'payment_id' => $payment->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
