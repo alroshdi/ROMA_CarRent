@@ -8,7 +8,7 @@ interface HeroSlideBackgroundProps {
 }
 
 export default function HeroSlideBackground({ images, autoPlayMs = 6000 }: HeroSlideBackgroundProps) {
-  const { dir } = useTranslation()
+  const { dir, t } = useTranslation()
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
 
@@ -63,7 +63,7 @@ export default function HeroSlideBackground({ images, autoPlayMs = 6000 }: HeroS
                 type="button"
                 onClick={() => goTo(i)}
                 className={`h-1 rounded-full transition-all duration-300 ${i === active ? 'w-10 bg-primary shadow-[0_0_12px_rgba(224,38,48,0.6)]' : 'w-4 bg-white/30 hover:bg-white/50'}`}
-                aria-label={`Slide ${i + 1}`}
+                aria-label={t('home.slideNumber', { n: i + 1 })}
                 aria-current={i === active}
               />
             ))}
@@ -73,7 +73,7 @@ export default function HeroSlideBackground({ images, autoPlayMs = 6000 }: HeroS
               type="button"
               onClick={prev}
               className="p-2 rounded-full border border-white/20 bg-black/40 backdrop-blur-sm text-white hover:border-primary hover:text-primary transition-colors"
-              aria-label="Previous slide"
+              aria-label={t('home.previousSlide')}
             >
               <PrevIcon className="w-4 h-4" />
             </button>
@@ -81,7 +81,7 @@ export default function HeroSlideBackground({ images, autoPlayMs = 6000 }: HeroS
               type="button"
               onClick={next}
               className="p-2 rounded-full border border-white/20 bg-black/40 backdrop-blur-sm text-white hover:border-primary hover:text-primary transition-colors"
-              aria-label="Next slide"
+              aria-label={t('home.nextSlide')}
             >
               <NextIcon className="w-4 h-4" />
             </button>

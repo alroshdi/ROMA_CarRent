@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { CheckCircle, AlertTriangle, X } from 'lucide-react'
 import { useTranslation } from '../i18n/LanguageProvider'
 
@@ -18,6 +18,7 @@ export default function ResultModal({
   onClose,
 }: ResultModalProps) {
   const { t } = useTranslation()
+  const okRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!open) return
@@ -26,6 +27,7 @@ export default function ResultModal({
     }
     document.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
+    okRef.current?.focus()
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = ''
@@ -45,7 +47,13 @@ export default function ResultModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div role="dialog" aria-modal="true" className="relative w-full max-w-md card-elevated p-6">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="result-modal-title"
+        tabIndex={-1}
+        className="relative w-full max-w-md card-elevated p-6 outline-none"
+      >
         <button type="button" onClick={onClose} className="absolute top-4 end-4 text-roma-muted hover:text-white transition-colors" aria-label={t('common.close')}>
           <X className="w-5 h-5" />
         </button>
@@ -54,11 +62,11 @@ export default function ResultModal({
             <Icon className={`w-7 h-7 ${styles.icon}`} />
           </div>
           <div className="flex-1">
-            <h2 className="text-lg font-bold text-white tracking-wide mb-2" style={{ fontFamily: 'var(--font-display)' }}>{title}</h2>
+            <h2 id="result-modal-title" className="text-lg font-bold text-white tracking-wide mb-2" style={{ fontFamily: 'var(--font-display)' }}>{title}</h2>
             <p className="text-sm text-roma-muted leading-relaxed whitespace-pre-line">{message}</p>
           </div>
         </div>
-        <button type="button" onClick={onClose} className="btn-primary w-full mt-6 py-2.5 text-sm">{t('common.ok')}</button>
+        <button ref={okRef} type="button" onClick={onClose} className="btn-primary w-full mt-6 py-2.5 text-sm">{t('common.ok')}</button>
       </div>
     </div>
   )

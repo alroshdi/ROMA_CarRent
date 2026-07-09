@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
-import { CheckCircle, MessageCircle } from 'lucide-react'
+import { CheckCircle, MessageCircle, AlertTriangle } from 'lucide-react'
 import Layout from '../components/Layout'
 import api from '../lib/api'
 import type { Booking } from '../types'
@@ -18,6 +18,7 @@ export default function PaymentSuccessPage() {
 
   useEffect(() => {
     if (!sessionId) {
+      setError(t('payment.missingSession'))
       setLoading(false)
       return
     }
@@ -63,9 +64,18 @@ export default function PaymentSuccessPage() {
     <Layout>
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
         {loading ? (
-          <p className="text-roma-muted">{t('payment.verifying')}</p>
+          <div className="card-elevated p-8">
+            <p className="text-roma-muted">{t('payment.verifying')}</p>
+          </div>
         ) : error ? (
-          <div className="alert-error p-6">{error}</div>
+          <div className="card-elevated p-8">
+            <AlertTriangle className="w-16 h-16 text-amber-400 mx-auto mb-4" aria-hidden />
+            <h1 className="text-xl font-bold text-white mb-3" style={{ fontFamily: 'var(--font-display)' }}>{t('payment.verifyFailed')}</h1>
+            <p className="alert-error mb-6">{error}</p>
+            <Link to="/my-bookings" className="btn-secondary py-2.5 px-6 text-sm inline-flex">
+              {t('payment.viewBookings')}
+            </Link>
+          </div>
         ) : (
           <div className="card-elevated p-8">
             <CheckCircle className="w-20 h-20 text-emerald-500 mx-auto mb-4" />
@@ -89,7 +99,7 @@ export default function PaymentSuccessPage() {
                   <button
                     type="button"
                     onClick={handleWhatsAppClick}
-                    className="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-[#25D366] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#1fb855] transition-colors shadow-[0_0_24px_rgba(37,211,102,0.25)]"
+                    className="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-[#25D366] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#1fb855] transition-colors shadow-[0_0_24px_rgba(37,211,102,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366]/60"
                   >
                     <MessageCircle className="w-5 h-5" /> {t('payment.openWhatsApp')}
                   </button>
@@ -103,7 +113,7 @@ export default function PaymentSuccessPage() {
                   <button
                     type="button"
                     onClick={handleWhatsAppClick}
-                    className="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-[#25D366]/90 text-white px-6 py-3 rounded-lg font-medium hover:bg-[#1fb855] transition-colors mb-4"
+                    className="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-[#25D366]/90 text-white px-6 py-3 rounded-lg font-medium hover:bg-[#1fb855] transition-colors mb-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366]/60"
                   >
                     <MessageCircle className="w-5 h-5" /> {t('payment.openWhatsAppAgain')}
                   </button>

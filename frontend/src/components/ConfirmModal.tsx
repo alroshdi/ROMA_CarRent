@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
 import { useTranslation } from '../i18n/LanguageProvider'
 
@@ -26,19 +26,22 @@ export default function ConfirmModal({
   onCancel,
 }: ConfirmModalProps) {
   const { t } = useTranslation()
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const cancelRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel()
+      if (e.key === 'Escape' && !loading) onCancel()
     }
     document.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
+    cancelRef.current?.focus()
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = ''
     }
-  }, [open, onCancel])
+  }, [open, onCancel, loading])
 
   if (!open) return null
 
@@ -53,10 +56,12 @@ export default function ConfirmModal({
         aria-hidden
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-modal-title"
-        className="relative w-full max-w-md card-elevated p-6 animate-in fade-in zoom-in duration-200"
+        tabIndex={-1}
+        className="relative w-full max-w-md card-elevated p-6 animate-in fade-in zoom-in duration-200 outline-none"
       >
         <button
           type="button"
@@ -81,7 +86,7 @@ export default function ConfirmModal({
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row gap-3 mt-6">
-          <button type="button" onClick={onCancel} disabled={loading} className="btn-secondary flex-1 py-2.5 text-sm">
+          <button ref={cancelRef} type="button" onClick={onCancel} disabled={loading} className="btn-secondary flex-1 py-2.5 text-sm">
             {cancelLabel ?? t('common.goBack')}
           </button>
           <button type="button" onClick={onConfirm} disabled={loading} className="btn-primary flex-1 py-2.5 text-sm">

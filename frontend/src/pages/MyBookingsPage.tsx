@@ -72,6 +72,7 @@ export default function MyBookingsPage() {
 
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [filter, setFilter] = useState<FilterKey>('all')
   const [cancelError, setCancelError] = useState('')
   const [cancelModal, setCancelModal] = useState<{
@@ -87,11 +88,14 @@ export default function MyBookingsPage() {
   const [cancelling, setCancelling] = useState(false)
 
   useEffect(() => {
-    api.get('/bookings').then(({ data }) => {
-      setBookings(data.bookings)
-      setLoading(false)
-    })
-  }, [])
+    api.get('/bookings')
+      .then(({ data }) => {
+        setBookings(data.bookings)
+        setLoadError('')
+      })
+      .catch(() => setLoadError(t('common.loadError')))
+      .finally(() => setLoading(false))
+  }, [t])
 
   const stats = useMemo(() => ({
     total: bookings.length,
@@ -253,6 +257,13 @@ export default function MyBookingsPage() {
             {[1, 2, 3].map((i) => (
               <BookingCardSkeleton key={i} />
             ))}
+          </div>
+        ) : loadError ? (
+          <div className="card-elevated p-12 text-center border-primary/15">
+            <p className="text-sm text-roma-muted mb-4">{loadError}</p>
+            <button type="button" onClick={() => window.location.reload()} className="btn-secondary py-2.5 px-6 text-sm">
+              {t('common.retry')}
+            </button>
           </div>
         ) : bookings.length === 0 ? (
           <div className="card-elevated p-12 md:p-16 text-center border-primary/15 bg-[radial-gradient(ellipse_at_center,rgba(224,38,48,0.06),transparent_70%)]">

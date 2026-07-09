@@ -7,6 +7,7 @@ import AdminPageHeader from '../../components/admin/AdminPageHeader'
 import AdminFormCard from '../../components/admin/AdminFormCard'
 import AdminTableShell from '../../components/admin/AdminTableShell'
 import ConfirmModal from '../../components/ConfirmModal'
+import AdminTableState from '../../components/admin/AdminTableState'
 import ResultModal from '../../components/ResultModal'
 
 type AdminCustomer = Customer & {
@@ -27,8 +28,17 @@ export default function AdminCustomersPage() {
   const [resettingPin, setResettingPin] = useState(false)
   const [pinResult, setPinResult] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
-  const fetchCustomers = () => api.get('/admin/customers').then(({ data }) => setCustomers(data.customers))
+  const fetchCustomers = () => {
+    setLoading(true)
+    setLoadError('')
+    return api.get('/admin/customers')
+      .then(({ data }) => setCustomers(data.customers))
+      .catch(() => setLoadError(t('common.loadError')))
+      .finally(() => setLoading(false))
+  }
 
   useEffect(() => {
     fetchCustomers()
@@ -204,7 +214,8 @@ export default function AdminCustomersPage() {
             </tr>
           </thead>
           <tbody className="text-roma-muted">
-            {customers.map((c) => (
+            <AdminTableState colSpan={9} loading={loading} error={loadError} empty={!loading && !loadError && customers.length === 0} onRetry={fetchCustomers} />
+            {!loading && !loadError && customers.map((c) => (
               <tr key={c.id}>
                 <td className="font-medium text-white whitespace-nowrap">{c.name}</td>
                 <td dir="ltr" className="whitespace-nowrap">{c.phone}</td>

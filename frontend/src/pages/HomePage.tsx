@@ -13,12 +13,14 @@ import type { Car } from '../types'
 import { useTranslation } from '../i18n/LanguageProvider'
 
 export default function HomePage() {
-  const { t } = useTranslation()
+  const { t, dir } = useTranslation()
   const navigate = useNavigate()
   const [cars, setCars] = useState<Car[]>([])
   const [pickupDate, setPickupDate] = useState('')
   const [returnDate, setReturnDate] = useState('')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [dateError, setDateError] = useState('')
 
   useEffect(() => {
     fetchCars()
@@ -26,19 +28,29 @@ export default function HomePage() {
 
   const fetchCars = async (pickup?: string, ret?: string) => {
     setLoading(true)
-    const params: Record<string, string> = {}
-    if (pickup && ret) {
-      params.pickup_date = pickup
-      params.return_date = ret
+    setError('')
+    try {
+      const params: Record<string, string> = {}
+      if (pickup && ret) {
+        params.pickup_date = pickup
+        params.return_date = ret
+      }
+      const { data } = await api.get('/cars', { params })
+      setCars(data.cars)
+    } catch {
+      setError(t('common.loadError'))
+    } finally {
+      setLoading(false)
     }
-    const { data } = await api.get('/cars', { params })
-    setCars(data.cars)
-    setLoading(false)
   }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!pickupDate || !returnDate) return
+    if (!pickupDate || !returnDate) {
+      setDateError(t('home.selectDatesHint'))
+      return
+    }
+    setDateError('')
     navigate(`/browse?pickup=${pickupDate}&return=${returnDate}`)
   }
 
@@ -53,7 +65,7 @@ export default function HomePage() {
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 md:pb-14 pt-32">
           <div className="max-w-3xl mb-8 md:mb-10">
             <div className="accent-line mb-5" />
-            <h1 className="text-[clamp(0.8125rem,2.75vw,3.25rem)] font-bold text-white leading-tight tracking-wide whitespace-nowrap">
+            <h1 className="text-[clamp(1.125rem,4vw,3.25rem)] font-bold text-white leading-tight tracking-wide text-balance">
               {t('home.heroLine1')}
             </h1>
             <p
@@ -73,27 +85,29 @@ export default function HomePage() {
             </p>
             <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-end">
               <div className="flex-1">
-                <label className="label">
+                <label className="label" htmlFor="home-pickup-date">
                   <Calendar className="w-4 h-4 inline me-1 text-primary" /> {t('home.pickupDate')}
                 </label>
                 <input
+                  id="home-pickup-date"
                   type="date"
                   min={today}
                   value={pickupDate}
-                  onChange={(e) => setPickupDate(e.target.value)}
+                  onChange={(e) => { setPickupDate(e.target.value); setDateError('') }}
                   className="input"
                   required
                 />
               </div>
               <div className="flex-1">
-                <label className="label">
+                <label className="label" htmlFor="home-return-date">
                   <Calendar className="w-4 h-4 inline me-1 text-primary" /> {t('home.returnDate')}
                 </label>
                 <input
+                  id="home-return-date"
                   type="date"
                   min={pickupDate || today}
                   value={returnDate}
-                  onChange={(e) => setReturnDate(e.target.value)}
+                  onChange={(e) => { setReturnDate(e.target.value); setDateError('') }}
                   className="input"
                   required
                 />
@@ -102,6 +116,7 @@ export default function HomePage() {
                 <Search className="w-4 h-4" /> {t('home.searchCars')}
               </button>
             </div>
+            {dateError && <p className="text-sm text-amber-300 mt-3" role="alert">{dateError}</p>}
           </form>
         </div>
 
@@ -146,7 +161,7 @@ export default function HomePage() {
             </div>
             <Link to="/browse" className="btn-secondary py-2.5 px-6 text-sm inline-flex shrink-0 self-start sm:self-auto">
               {t('browse.viewAll')}
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className={`w-4 h-4 ${dir === 'rtl' ? 'rotate-180' : ''}`} />
             </Link>
           </div>
 
@@ -155,6 +170,13 @@ export default function HomePage() {
             {[1, 2, 3].map((i) => (
               <div key={i} className="card-elevated h-[400px] animate-pulse bg-roma-elevated" />
             ))}
+          </div>
+        ) : error ? (
+          <div className="text-center py-16 card-elevated border-primary/15">
+            <p className="text-sm text-roma-muted mb-4">{error}</p>
+            <button type="button" onClick={() => fetchCars()} className="btn-secondary py-2.5 px-6 text-sm">
+              {t('common.retry')}
+            </button>
           </div>
         ) : cars.length === 0 ? (
           <div className="text-center py-16 card-elevated border-primary/15">

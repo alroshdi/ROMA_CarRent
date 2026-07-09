@@ -39,6 +39,7 @@ export default function BrowseCarsPage() {
   const [pickupDate, setPickupDate] = useState(searchParams.get('pickup') || '')
   const [returnDate, setReturnDate] = useState(searchParams.get('return') || '')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [searched, setSearched] = useState(Boolean(searchParams.get('pickup') && searchParams.get('return')))
   const [brandFilter, setBrandFilter] = useState('')
   const [sort, setSort] = useState<SortOption>('price-asc')
@@ -48,14 +49,20 @@ export default function BrowseCarsPage() {
 
   const fetchCars = async (pickup?: string, ret?: string) => {
     setLoading(true)
-    const params: Record<string, string> = {}
-    if (pickup && ret) {
-      params.pickup_date = pickup
-      params.return_date = ret
+    setError('')
+    try {
+      const params: Record<string, string> = {}
+      if (pickup && ret) {
+        params.pickup_date = pickup
+        params.return_date = ret
+      }
+      const { data } = await api.get('/cars', { params })
+      setCars(data.cars)
+    } catch {
+      setError(t('common.loadError'))
+    } finally {
+      setLoading(false)
     }
-    const { data } = await api.get('/cars', { params })
-    setCars(data.cars)
-    setLoading(false)
   }
 
   useEffect(() => {
@@ -231,6 +238,13 @@ export default function BrowseCarsPage() {
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <CarCardSkeleton key={i} />
             ))}
+          </div>
+        ) : error ? (
+          <div className="card-elevated p-12 text-center border-primary/15">
+            <p className="text-sm text-roma-muted mb-4">{error}</p>
+            <button type="button" onClick={() => fetchCars(pickupDate || undefined, returnDate || undefined)} className="btn-secondary py-2.5 px-6 text-sm">
+              {t('common.retry')}
+            </button>
           </div>
         ) : filteredCars.length === 0 ? (
           <div className="card-elevated p-12 md:p-16 text-center border-primary/15 bg-[radial-gradient(ellipse_at_center,rgba(224,38,48,0.06),transparent_70%)]">

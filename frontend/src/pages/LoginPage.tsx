@@ -150,13 +150,13 @@ export default function LoginPage() {
               <p className="text-[11px] text-roma-subtle mt-1.5">{t('login.phoneHint')}</p>
             </div>
             <div>
-              <label className="label">{t('login.pin')}</label>
-              <input type="password" value={pin} onChange={(e) => setPin(e.target.value)} maxLength={6} minLength={4} className="input" required />
+              <label className="label" htmlFor="login-pin">{t('login.pin')}</label>
+              <input id="login-pin" type="password" value={pin} onChange={(e) => setPin(e.target.value)} maxLength={6} minLength={4} className="input" required autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
             </div>
             {mode === 'register' && (
               <div>
-                <label className="label">{t('login.confirmPin')}</label>
-                <input type="password" value={pinConfirm} onChange={(e) => setPinConfirm(e.target.value)} maxLength={6} minLength={4} className="input" required />
+                <label className="label" htmlFor="login-pin-confirm">{t('login.confirmPin')}</label>
+                <input id="login-pin-confirm" type="password" value={pinConfirm} onChange={(e) => setPinConfirm(e.target.value)} maxLength={6} minLength={4} className="input" required autoComplete="new-password" />
               </div>
             )}
             <button type="submit" disabled={loading} className="btn-primary w-full py-3">

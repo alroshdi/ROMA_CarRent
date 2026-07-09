@@ -9,6 +9,7 @@ export default function UserMenu() {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -22,6 +23,18 @@ export default function UserMenu() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open])
 
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false)
+        triggerRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open])
+
   const items = [
     { to: '/profile', icon: User, label: t('nav.profile') },
     { to: '/my-bookings', icon: ClipboardList, label: t('nav.myBookings') },
@@ -30,11 +43,13 @@ export default function UserMenu() {
   return (
     <div className="relative" ref={menuRef}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm text-roma-muted hover:text-white hover:bg-roma-elevated border border-transparent hover:border-roma-border transition-colors"
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label={t('nav.account')}
       >
         <User className="w-4 h-4 text-primary shrink-0" />
         <span className="hidden sm:inline max-w-[7rem] truncate">{customer?.name}</span>

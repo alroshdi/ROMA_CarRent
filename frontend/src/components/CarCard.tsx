@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Users, Fuel, Settings, ArrowUpRight, CheckCircle2 } from 'lucide-react'
 import type { Car } from '../types'
 import { useTranslation } from '../i18n/LanguageProvider'
+import { fuelLabelKey, transmissionLabelKey } from '../lib/carOptions'
 
 interface CarCardProps {
   car: Car
@@ -11,7 +12,7 @@ interface CarCardProps {
 }
 
 export default function CarCard({ car, pickupDate, returnDate, featured = false }: CarCardProps) {
-  const { t } = useTranslation()
+  const { t, dir } = useTranslation()
   const image = car.images?.[0] || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400&h=250&fit=crop'
   const features = car.features || {}
   const bookUrl = pickupDate && returnDate
@@ -72,13 +73,13 @@ export default function CarCard({ car, pickupDate, returnDate, featured = false 
           {features.transmission && (
             <span className="flex items-center gap-1.5 bg-roma-dark px-2.5 py-1.5 rounded-lg border border-roma-border">
               <Settings className="w-3.5 h-3.5 text-primary shrink-0" />
-              {features.transmission}
+              {t(transmissionLabelKey(String(features.transmission)))}
             </span>
           )}
           {features.fuel && (
             <span className="flex items-center gap-1.5 bg-roma-dark px-2.5 py-1.5 rounded-lg border border-roma-border">
               <Fuel className="w-3.5 h-3.5 text-primary shrink-0" />
-              {features.fuel}
+              {t(fuelLabelKey(String(features.fuel)))}
             </span>
           )}
         </div>
@@ -88,7 +89,7 @@ export default function CarCard({ car, pickupDate, returnDate, featured = false 
           className="btn-primary w-full py-3 text-sm mt-auto group/btn justify-center"
         >
           {t('car.bookNow')}
-          <ArrowUpRight className="w-4 h-4 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+          <ArrowUpRight className={`w-4 h-4 transition-transform ${dir === 'rtl' ? 'group-hover/btn:-translate-x-0.5 group-hover/btn:-translate-y-0.5' : 'group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5'}`} />
         </Link>
       </div>
     </article>
