@@ -5,16 +5,20 @@ import { useTranslation } from '../i18n/LanguageProvider'
 
 interface SignaturePadProps {
   onSign: (data: string) => void
+  onEmpty?: () => void
 }
 
-export default function SignaturePad({ onSign }: SignaturePadProps) {
+export default function SignaturePad({ onSign, onEmpty }: SignaturePadProps) {
   const { t } = useTranslation()
   const sigRef = useRef<SignatureCanvas>(null)
 
   const clear = () => sigRef.current?.clear()
 
   const save = () => {
-    if (sigRef.current?.isEmpty()) return
+    if (sigRef.current?.isEmpty()) {
+      onEmpty?.()
+      return
+    }
     onSign(sigRef.current!.toDataURL('image/png'))
   }
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { MessageCircle } from 'lucide-react'
 import { useTranslation } from '../i18n/LanguageProvider'
-import { whatsappUrl, CONTACT_DIAL_CODE } from '../lib/contact'
+import { openWhatsApp, CONTACT_DIAL_CODE } from '../lib/contact'
 
 type ContactMessageFormProps = {
   embedded?: boolean
@@ -25,7 +25,7 @@ export default function ContactMessageForm({ embedded = false }: ContactMessageF
       phone: fullPhone,
       message,
     })
-    window.open(whatsappUrl(body), '_blank', 'noopener,noreferrer')
+    openWhatsApp(body)
   }
 
   return (

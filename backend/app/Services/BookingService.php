@@ -27,13 +27,26 @@ class BookingService
     {
         $query->whereNotIn('status', ['cancelled', 'completed'])
             ->where('pickup_date', '<=', $returnDate)
-            ->where('return_date', '>=', $pickupDate);
+            ->where('return_date', '>=', $pickupDate)
+            ->where(function (Builder $q) {
+                $q->where('payment_status', 'paid')
+                    ->orWhereIn('status', ['confirmed', 'active'])
+                    ->orWhere('created_at', '>=', now()->subHours(2));
+            });
 
         if ($excludeBookingId) {
             $query->where('id', '!=', $excludeBookingId);
         }
 
         return $query;
+    }
+
+    public function isDriverAvailable(int $driverId, string $pickupDate, string $returnDate, ?int $excludeBookingId = null): bool
+    {
+        $query = Booking::where('driver_id', $driverId)->where('with_driver', true);
+        $this->applyOverlapConstraints($query, $pickupDate, $returnDate, $excludeBookingId);
+
+        return ! $query->exists();
     }
 
     public function calculatePrice(Car $car, string $pickupDate, string $returnDate, bool $withDriver = false): array
@@ -64,6 +77,16 @@ class BookingService
 
         if ($return->lt($pickup)) {
             throw new \InvalidArgumentException('Return date must be on or after pickup date.');
+        }
+    }
+
+    public function validatePickupDateTime(string $pickupDate, ?string $pickupTime): void
+    {
+        $time = $pickupTime ?: '00:00';
+        $pickupAt = Carbon::parse($pickupDate.' '.$time);
+
+        if ($pickupAt->lt(now())) {
+            throw new \InvalidArgumentException('Pickup date and time must be in the future.');
         }
     }
 }

@@ -1,12 +1,15 @@
 import { useEffect, useRef } from 'react'
-import { CheckCircle, AlertTriangle, X } from 'lucide-react'
+import { CheckCircle, AlertTriangle, X, MessageCircle } from 'lucide-react'
 import { useTranslation } from '../i18n/LanguageProvider'
+import { openWhatsApp } from '../lib/contact'
 
 interface ResultModalProps {
   open: boolean
   title: string
   message: string
   variant?: 'success' | 'warning' | 'info'
+  whatsappMessage?: string
+  whatsappLabel?: string
   onClose: () => void
 }
 
@@ -15,6 +18,8 @@ export default function ResultModal({
   title,
   message,
   variant = 'success',
+  whatsappMessage,
+  whatsappLabel,
   onClose,
 }: ResultModalProps) {
   const { t } = useTranslation()
@@ -66,7 +71,19 @@ export default function ResultModal({
             <p className="text-sm text-roma-muted leading-relaxed whitespace-pre-line">{message}</p>
           </div>
         </div>
-        <button ref={okRef} type="button" onClick={onClose} className="btn-primary w-full mt-6 py-2.5 text-sm">{t('common.ok')}</button>
+        <div className={`flex flex-col gap-3 mt-6`}>
+          {whatsappMessage && (
+            <button
+              type="button"
+              onClick={() => openWhatsApp(whatsappMessage)}
+              className="inline-flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1fb855] rounded-lg transition-colors"
+            >
+              <MessageCircle className="w-4 h-4" />
+              {whatsappLabel ?? t('admin.shareViaWhatsApp')}
+            </button>
+          )}
+          <button ref={okRef} type="button" onClick={onClose} className="btn-primary w-full py-2.5 text-sm">{t('common.ok')}</button>
+        </div>
       </div>
     </div>
   )

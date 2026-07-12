@@ -1,10 +1,12 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from './lib/auth'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import BookingFlowPage from './pages/BookingFlowPage'
 import MyBookingsPage from './pages/MyBookingsPage'
 import PaymentSuccessPage from './pages/PaymentSuccessPage'
+import PaymentCancelPage from './pages/PaymentCancelPage'
+import PaymentEmbedCallbackPage from './pages/PaymentEmbedCallbackPage'
 import ContactPage from './pages/ContactPage'
 import AboutPage from './pages/AboutPage'
 import BrowseCarsPage from './pages/BrowseCarsPage'
@@ -29,7 +31,10 @@ function ProtectedAdmin({ children }: { children: React.ReactNode }) {
 
 function ProtectedCustomer({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('customer_token')
-  if (!token) return <Navigate to="/login" replace />
+  const location = useLocation()
+  if (!token) {
+    return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />
+  }
   return <>{children}</>
 }
 
@@ -47,6 +52,9 @@ export default function App() {
           <Route path="/my-bookings" element={<ProtectedCustomer><MyBookingsPage /></ProtectedCustomer>} />
           <Route path="/profile" element={<ProtectedCustomer><ProfilePage /></ProtectedCustomer>} />
           <Route path="/payment/success" element={<PaymentSuccessPage />} />
+          <Route path="/payment/cancel" element={<PaymentCancelPage />} />
+          <Route path="/payment/embed/success" element={<PaymentEmbedCallbackPage status="success" />} />
+          <Route path="/payment/embed/cancel" element={<PaymentEmbedCallbackPage status="cancelled" />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<ProtectedAdmin><AdminLayout /></ProtectedAdmin>}>
             <Route index element={<AdminDashboardPage />} />

@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { differenceInDays } from 'date-fns'
-import { ArrowLeft, ArrowRight, CheckCircle, Shield, IdCard, Clock } from 'lucide-react'
+import { differenceInDays, format } from 'date-fns'
+import { ArrowLeft, ArrowRight, CheckCircle, Shield, IdCard, Clock, MessageCircle } from 'lucide-react'
 import Layout from '../components/Layout'
 import SignaturePad from '../components/SignaturePad'
 import BookingLocationField from '../components/BookingLocationField'
 import BookingPriceBreakdown from '../components/BookingPriceBreakdown'
+import ThawaniCheckoutEmbed from '../components/ThawaniCheckoutEmbed'
 import { useAuth } from '../lib/auth'
 import api from '../lib/api'
+import { openWhatsApp } from '../lib/contact'
 import { parseStoredLocation, resolveLocationValue, type BookingLocationKey } from '../lib/bookingLocations'
 import { toTimeInputValue, formatBookingTime } from '../lib/bookingTime'
 import type { Car, Driver, Booking, Settings } from '../types'
@@ -26,10 +28,21 @@ export default function BookingFlowPage() {
   const [car, setCar] = useState<Car | null>(null)
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [settings, setSettings] = useState<Settings | null>(null)
+  const [selectedGateway, setSelectedGateway] = useState('thawani')
+  const [gatewaysReady, setGatewaysReady] = useState(false)
+  const [paymentComplete, setPaymentComplete] = useState(false)
+  const [paymentCancelled, setPaymentCancelled] = useState(false)
+  const [paidBooking, setPaidBooking] = useState<Booking | null>(null)
+  const [whatsappSent, setWhatsappSent] = useState(false)
+  const [embedKey, setEmbedKey] = useState(0)
   const [booking, setBooking] = useState<Booking | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [pageLoading, setPageLoading] = useState(true)
+  const pdfUrlRef = useRef<string | null>(null)
+
+  const today = format(new Date(), 'yyyy-MM-dd')
 
   const [pickupDate, setPickupDate] = useState(searchParams.get('pickup') || '')
   const [pickupTime, setPickupTime] = useState('10:00')
@@ -46,25 +59,52 @@ export default function BookingFlowPage() {
 
   const stepKeys: Step[] = ['details', 'summary', 'contract', 'sign', 'pay']
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login', { state: { from: `/book/${carId}` } })
-      return
+  const setContractPdfUrl = useCallback((url: string | null) => {
+    if (pdfUrlRef.current) {
+      URL.revokeObjectURL(pdfUrlRef.current)
     }
+    pdfUrlRef.current = url
+    setPdfUrl(url)
+  }, [])
+
+  const loadContractPdf = useCallback(async (bookingId: number) => {
+    const res = await api.get(`/bookings/${bookingId}/contract/pdf`, { responseType: 'blob' })
+    setContractPdfUrl(URL.createObjectURL(res.data))
+  }, [setContractPdfUrl])
+
+  useEffect(() => {
+    return () => {
+      if (pdfUrlRef.current) {
+        URL.revokeObjectURL(pdfUrlRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+
     const existingBookingId = searchParams.get('booking')
+    setPageLoading(true)
+    setError('')
 
     Promise.all([
       api.get(`/cars/${carId}`),
       api.get('/drivers'),
       api.get('/settings'),
       existingBookingId ? api.get(`/bookings/${existingBookingId}`) : Promise.resolve(null),
-    ]).then(([carRes, driversRes, settingsRes, bookingRes]) => {
+    ]).then(async ([carRes, driversRes, settingsRes, bookingRes]) => {
       setCar(carRes.data.car)
       setDrivers(driversRes.data.drivers || [])
       setSettings(settingsRes.data)
 
       if (bookingRes?.data?.booking) {
         const b: Booking = bookingRes.data.booking
+
+        if (String(b.car_id) !== String(carId)) {
+          setError(t('booking.bookingCarMismatch'))
+          return
+        }
+
         setBooking(b)
         setPickupDate(b.pickup_date.slice(0, 10))
         setPickupTime(toTimeInputValue(b.pickup_time) || '10:00')
@@ -80,16 +120,79 @@ export default function BookingFlowPage() {
         setWithDriver(b.with_driver)
         setDriverId(b.driver_id ? String(b.driver_id) : '')
 
+        if (b.payment_status === 'paid') {
+          setPaymentComplete(true)
+          setPaidBooking(b)
+          setWhatsappSent(sessionStorage.getItem(`whatsapp_sent_booking_${b.id}`) === '1')
+          setStep('pay')
+          return
+        }
+
         if (b.contract?.signed_at) {
           setStep('pay')
         } else if (b.contract) {
-          setStep('summary')
+          try {
+            await loadContractPdf(b.id)
+            setStep('contract')
+          } catch {
+            setStep('summary')
+          }
         } else {
           setStep('summary')
         }
       }
     }).catch(() => setError(t('booking.loadFailed')))
-  }, [carId, isAuthenticated, navigate, searchParams, t])
+      .finally(() => setPageLoading(false))
+  }, [carId, isAuthenticated, loadContractPdf, searchParams, t])
+
+  useEffect(() => {
+    api.get('/payments/gateways')
+      .then(({ data }) => {
+        setSelectedGateway(data.default_gateway || data.gateways?.[0]?.key || 'thawani')
+      })
+      .catch(() => {
+        setSelectedGateway('thawani')
+      })
+      .finally(() => setGatewaysReady(true))
+  }, [])
+
+  useEffect(() => {
+    if (booking?.payment_status === 'paid') {
+      setPaymentComplete(true)
+      setPaidBooking(booking)
+    }
+  }, [booking])
+
+  const handlePaymentPaid = (confirmedBooking: Booking) => {
+    setPaidBooking(confirmedBooking)
+    setPaymentComplete(true)
+    setPaymentCancelled(false)
+    setBooking(confirmedBooking)
+    setError('')
+  }
+
+  const handlePaymentCancelled = () => {
+    setPaymentCancelled(true)
+    setError(t('payment.cancelledMessage'))
+  }
+
+  const paymentActive = gatewaysReady && !!booking && booking.payment_status !== 'paid' && !paymentComplete
+
+  const waMessage = paidBooking
+    ? t('payment.whatsappBooking', {
+        id: paidBooking.id,
+        car: paidBooking.car?.name || car?.name || t('common.car'),
+        pickup: formatDate(paidBooking.pickup_date, 'MMM d, yyyy'),
+        return: formatDate(paidBooking.return_date, 'MMM d, yyyy'),
+      })
+    : null
+
+  const handleWhatsAppClick = () => {
+    if (!waMessage || !paidBooking) return
+    openWhatsApp(waMessage)
+    setWhatsappSent(true)
+    sessionStorage.setItem(`whatsapp_sent_booking_${paidBooking.id}`, '1')
+  }
 
   useEffect(() => {
     if (withDriver && drivers.length > 0 && !driverId) {
@@ -166,6 +269,12 @@ export default function BookingFlowPage() {
       return
     }
 
+    const pickupAt = new Date(`${pickupDate}T${pickupTime || '00:00'}`)
+    if (pickupAt <= new Date()) {
+      setError(t('booking.pickupMustBeFuture'))
+      return
+    }
+
     setLoading(true)
     try {
       const { data } = await api.post('/bookings', {
@@ -179,8 +288,10 @@ export default function BookingFlowPage() {
         additional_notes: additionalNotes.trim() || null,
         with_driver: withDriver,
         driver_id: withDriver ? Number(driverId) : null,
+        gcc_license_confirmed: !withDriver && hasGccLicense,
       })
       setBooking(data.booking)
+      navigate(`/book/${carId}?booking=${data.booking.id}`, { replace: true })
       setStep('summary')
     } catch (err: unknown) {
       const res = (err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response?.data
@@ -196,9 +307,7 @@ export default function BookingFlowPage() {
     setLoading(true)
     try {
       await api.post(`/bookings/${booking.id}/contract`)
-      const res = await api.get(`/bookings/${booking.id}/contract/pdf`, { responseType: 'blob' })
-      const url = URL.createObjectURL(res.data)
-      setPdfUrl(url)
+      await loadContractPdf(booking.id)
       setStep('contract')
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -213,7 +322,8 @@ export default function BookingFlowPage() {
     setError('')
     setLoading(true)
     try {
-      await api.post(`/bookings/${booking.id}/sign`, { signature_data: signatureData })
+      const { data } = await api.post(`/bookings/${booking.id}/sign`, { signature_data: signatureData })
+      setBooking((prev) => prev ? { ...prev, contract: data.contract } : prev)
       setStep('pay')
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -223,22 +333,27 @@ export default function BookingFlowPage() {
     }
   }
 
-  const proceedToPayment = async () => {
-    if (!booking) return
-    setLoading(true)
-    try {
-      const { data } = await api.post('/payments/checkout', { booking_id: booking.id })
-      window.location.href = data.checkout_url
-    } catch {
-      setError(t('booking.paymentFailed'))
-      setLoading(false)
-    }
+  const proceedToPaymentManual = () => {
+    setPaymentCancelled(false)
+    setError('')
+    setEmbedKey((k) => k + 1)
+  }
+
+  if (pageLoading) {
+    return (
+      <Layout>
+        <div className="max-w-3xl mx-auto px-4 py-16 text-center text-roma-muted">{t('common.loading')}</div>
+      </Layout>
+    )
   }
 
   if (!car) {
     return (
       <Layout>
-        <div className="max-w-3xl mx-auto px-4 py-16 text-center text-roma-muted">{t('common.loading')}</div>
+        <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-4">
+          <p className="text-roma-muted">{error || t('booking.loadFailed')}</p>
+          <Link to="/browse" className="btn-secondary py-2 px-4 text-sm inline-flex">{t('booking.backToCars')}</Link>
+        </div>
       </Layout>
     )
   }
@@ -249,7 +364,7 @@ export default function BookingFlowPage() {
 
   return (
     <Layout>
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className={`mx-auto px-4 py-8 ${step === 'pay' ? 'max-w-4xl' : 'max-w-3xl'}`}>
         <Link to="/browse" className="inline-flex items-center gap-1 text-sm text-roma-muted hover:text-primary mb-6 transition-colors">
           <BackIcon className="w-4 h-4" /> {t('booking.backToCars')}
         </Link>
@@ -278,14 +393,14 @@ export default function BookingFlowPage() {
                 <div>
                   <label className="label" htmlFor="pickup-date">{t('booking.pickupDateTime')}</label>
                   <div className="input-date-time-row">
-                    <input id="pickup-date" type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} className="input input-date" required />
+                    <input id="pickup-date" type="date" value={pickupDate} min={today} onChange={(e) => setPickupDate(e.target.value)} className="input input-date" required />
                     <input type="time" value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} className="input input-time" dir="ltr" aria-label={t('booking.pickupTime')} />
                   </div>
                 </div>
                 <div>
                   <label className="label" htmlFor="return-date">{t('booking.returnDateTime')}</label>
                   <div className="input-date-time-row">
-                    <input id="return-date" type="date" value={returnDate} min={pickupDate} onChange={(e) => setReturnDate(e.target.value)} className="input input-date" required />
+                    <input id="return-date" type="date" value={returnDate} min={pickupDate || today} onChange={(e) => setReturnDate(e.target.value)} className="input input-date" required />
                     <input type="time" value={returnTime} onChange={(e) => setReturnTime(e.target.value)} className="input input-time" dir="ltr" aria-label={t('booking.returnTime')} />
                   </div>
                 </div>
@@ -449,20 +564,67 @@ export default function BookingFlowPage() {
           {step === 'sign' && (
             <div className="space-y-4">
               <p className="text-sm text-roma-muted">{t('booking.signHint')}</p>
-              <SignaturePad onSign={(data) => signContract(data)} />
+              <SignaturePad onSign={(data) => signContract(data)} onEmpty={() => setError(t('signature.empty'))} />
               {loading && <p className="text-sm text-primary">{t('booking.processingSignature')}</p>}
             </div>
           )}
 
           {step === 'pay' && booking && (
-            <div className="space-y-4 text-center">
-              <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto" />
-              <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'var(--font-display)' }}>{t('booking.contractSigned')}</h3>
-              <p className="text-roma-muted text-sm">{t('booking.proceedToPayment')}</p>
-              <div className="text-3xl font-bold text-primary">{parseFloat(booking.total_price).toFixed(2)} {t('common.omr')}</div>
-              <button onClick={proceedToPayment} disabled={loading} className="btn-primary w-full py-3">
-                {t('booking.payWithThawani')}
-              </button>
+            <div className="space-y-4">
+              {paymentComplete && paidBooking ? (
+                <div className="text-center space-y-4">
+                  <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto" />
+                  <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'var(--font-display)' }}>{t('payment.confirmed')}</h3>
+                  <p className="text-roma-muted text-sm">{t('payment.bookingSummary', { id: paidBooking.id, car: paidBooking.car?.name || car.name })}</p>
+                  {!whatsappSent ? (
+                    <>
+                      <p className="text-sm text-amber-200/90 leading-relaxed">{t('payment.whatsappRequired')}</p>
+                      <button
+                        type="button"
+                        onClick={handleWhatsAppClick}
+                        className="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-[#25D366] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#1fb855] transition-colors"
+                      >
+                        <MessageCircle className="w-5 h-5" /> {t('payment.openWhatsApp')}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-emerald-400">{t('payment.whatsappSent')}</p>
+                      <Link to="/my-bookings" className="btn-primary py-2.5 px-6 text-sm inline-flex">{t('payment.viewBookings')}</Link>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="text-center mb-2">
+                    <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'var(--font-display)' }}>{t('booking.paymentPortalTitle')}</h3>
+                    <p className="text-roma-muted text-sm mt-1">{t('booking.embeddedPaymentHint')}</p>
+                    <div className="text-2xl font-bold text-primary mt-3">{parseFloat(booking.total_price).toFixed(2)} {t('common.omr')}</div>
+                  </div>
+
+                  {paymentCancelled && (
+                    <div className="text-center">
+                      <button type="button" onClick={proceedToPaymentManual} className="btn-secondary py-2 px-4 text-sm">
+                        {t('payment.retryPayment')}
+                      </button>
+                    </div>
+                  )}
+
+                  {paymentActive && !paymentCancelled && (
+                    <ThawaniCheckoutEmbed
+                      key={`${booking.id}-${embedKey}`}
+                      bookingId={booking.id}
+                      gateway={selectedGateway}
+                      onPaid={handlePaymentPaid}
+                      onCancelled={handlePaymentCancelled}
+                    />
+                  )}
+
+                  {!paymentActive && gatewaysReady && (
+                    <p className="text-xs text-roma-subtle text-center">{t('booking.paymentUnavailable')}</p>
+                  )}
+                </>
+              )}
             </div>
           )}
         </div>

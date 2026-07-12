@@ -9,6 +9,10 @@ export function whatsappUrl(text?: string): string {
   return text ? `${base}?text=${encodeURIComponent(text)}` : base
 }
 
+export function openWhatsApp(text?: string): void {
+  window.open(whatsappUrl(text), '_blank', 'noopener,noreferrer')
+}
+
 export const GULF_DIAL_CODES = [
   { code: '+968', countryKey: 'oman' },
   { code: '+971', countryKey: 'uae' },

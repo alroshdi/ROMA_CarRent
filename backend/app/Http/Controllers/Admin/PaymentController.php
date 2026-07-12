@@ -5,18 +5,20 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Payment;
-use App\Services\ThawaniService;
+use App\Services\Payment\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
 class PaymentController extends Controller
 {
-    public function __construct(private ThawaniService $thawaniService) {}
+    public function __construct(private PaymentService $paymentService) {}
 
     public function index(Request $request): JsonResponse
     {
         $payments = Payment::with(['booking.customer', 'booking.car'])
             ->when($request->status, fn ($q, $status) => $q->where('status', $status))
+            ->when($request->gateway, fn ($q, $gateway) => $q->where('gateway', $gateway))
             ->latest()
             ->paginate(20);
 
@@ -32,27 +34,21 @@ class PaymentController extends Controller
 
     public function refund(Request $request, Payment $payment): JsonResponse
     {
-        if ($payment->status !== 'paid') {
-            return response()->json(['message' => 'Only paid payments can be refunded.'], 422);
+        try {
+            $payment = $this->paymentService->refund($payment, $request->input('reason'));
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Exception $e) {
+            report($e);
+
+            return response()->json(['message' => 'Failed to process refund.'], 502);
         }
-
-        $result = $this->thawaniService->refund($payment);
-
-        $payment->update([
-            'status' => 'refunded',
-            'raw_response' => array_merge($payment->raw_response ?? [], $result['raw_response']),
-        ]);
-
-        $payment->booking->update([
-            'payment_status' => 'refunded',
-            'refund_status' => 'refunded',
-        ]);
 
         $this->logActivity($request, 'payment.refunded', $payment);
 
         return response()->json([
             'message' => 'Refund processed.',
-            'payment' => $payment->fresh(),
+            'payment' => $payment,
         ]);
     }
 
@@ -63,7 +59,10 @@ class PaymentController extends Controller
             'action' => $action,
             'subject_type' => Payment::class,
             'subject_id' => $payment->id,
-            'metadata' => ['amount' => $payment->amount],
+            'metadata' => [
+                'amount' => $payment->amount,
+                'gateway' => $payment->gateway,
+            ],
         ]);
     }
 }

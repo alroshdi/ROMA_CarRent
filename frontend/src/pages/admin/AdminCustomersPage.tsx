@@ -138,6 +138,7 @@ export default function AdminCustomersPage() {
         title={t('admin.pinResetDone')}
         message={t('admin.resetPinResult', { pin: pinResult ?? '' })}
         variant="success"
+        whatsappMessage={pinResult ? t('admin.sharePinWhatsApp', { pin: pinResult }) : undefined}
         onClose={() => setPinResult(null)}
       />
 

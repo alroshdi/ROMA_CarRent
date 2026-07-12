@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MessageCircle, Menu, X } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import Logo from './Logo'
 import LanguageSwitcher from './LanguageSwitcher'
 import Footer from './Footer'
 import UserMenu from './UserMenu'
+import WhatsAppButton from './WhatsAppButton'
 import { useAuth } from '../lib/auth'
 import { useTranslation } from '../i18n/LanguageProvider'
-import { whatsappUrl } from '../lib/contact'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -66,20 +66,12 @@ export default function Layout({ children }: LayoutProps) {
                 {t('common.login')}
               </Link>
             )}
-            <a
-              href={whatsappUrl(t('common.whatsappInquiry'))}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={t('home.support247')}
-              className="flex items-center gap-1.5 text-xs sm:text-sm text-white bg-[#25D366] hover:bg-[#1fb855] px-2.5 sm:px-3 py-2 rounded-lg font-medium transition-colors shrink-0"
-            >
-              <MessageCircle className="w-4 h-4 shrink-0" />
-              <span className="hidden sm:inline whitespace-nowrap">{t('home.support247')}</span>
-            </a>
+            <WhatsAppButton variant="compact" labelKey="home.support247" />
             <LanguageSwitcher iconOnly />
           </nav>
 
           <div className="flex sm:hidden items-center gap-1 shrink-0">
+            <WhatsAppButton variant="compact" iconOnly />
             {isAuthenticated ? <UserMenu /> : (
               <Link to="/login" className="btn-primary text-xs px-3 py-2">
                 {t('common.login')}
@@ -137,15 +129,7 @@ export default function Layout({ children }: LayoutProps) {
               )}
             </nav>
             <div className="p-4 border-t border-roma-border space-y-3">
-              <a
-                href={whatsappUrl(t('common.whatsappInquiry'))}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full text-sm text-white bg-[#25D366] hover:bg-[#1fb855] px-4 py-2.5 rounded-lg font-medium transition-colors"
-              >
-                <MessageCircle className="w-4 h-4" />
-                {t('home.support247')}
-              </a>
+              <WhatsAppButton className="w-full justify-center py-2.5" labelKey="home.support247" />
               {isAuthenticated ? (
                 <button type="button" onClick={() => { logout(); closeMenu() }} className="btn-secondary w-full py-2.5 text-sm">
                   {t('common.logout')}

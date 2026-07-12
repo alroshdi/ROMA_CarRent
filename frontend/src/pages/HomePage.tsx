@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
-import { Search, Calendar, Car as CarIcon, ArrowRight } from 'lucide-react'
+import { Search, Calendar, Car as CarIcon, ArrowRight, MessageCircle } from 'lucide-react'
 import Layout from '../components/Layout'
 import CarCard from '../components/CarCard'
 import FeatureCard, { FEATURE_KEYS } from '../components/FeatureCard'
 import FaqSection from '../components/FaqSection'
 import HeroSlideBackground from '../components/HeroSlideBackground'
 import api from '../lib/api'
+import { openWhatsApp, whatsappUrl } from '../lib/contact'
 import { HERO_SLIDE_IMAGES } from '../lib/heroSlides'
 import type { Car } from '../types'
 import { useTranslation } from '../i18n/LanguageProvider'
@@ -74,6 +75,21 @@ export default function HomePage() {
             >
               {t('home.heroLine2')}
             </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <a
+                href={whatsappUrl(t('home.whatsappBookingMessage'))}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  e.preventDefault()
+                  openWhatsApp(t('home.whatsappBookingMessage'))
+                }}
+                className="inline-flex items-center gap-2 py-2.5 px-5 rounded-lg text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1fb855] transition-colors shadow-[0_4px_20px_rgba(37,211,102,0.25)]"
+              >
+                <MessageCircle className="w-4 h-4" />
+                {t('home.instantWhatsApp')}
+              </a>
+            </div>
           </div>
 
           <form

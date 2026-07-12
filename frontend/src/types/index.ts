@@ -69,9 +69,17 @@ export interface Contract {
 export interface Payment {
   id: number
   booking_id: number
-  thawani_session_id: string | null
+  gateway: string
+  external_session_id: string | null
+  external_payment_id: string | null
   amount: string
+  currency: string
   status: 'initiated' | 'paid' | 'failed' | 'refunded'
+}
+
+export interface PaymentGateway {
+  key: string
+  name: string
 }
 
 export interface ContractTemplate {

@@ -7,6 +7,9 @@ return [
     'company_address' => env('COMPANY_ADDRESS', 'Muscat, Oman'),
     'driver_daily_rate' => (float) env('DRIVER_DAILY_RATE', 25),
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+    'payment' => [
+        'default_gateway' => env('PAYMENT_DEFAULT_GATEWAY', 'thawani'),
+    ],
     'thawani' => [
         'mock' => env('THAWANI_MOCK', false),
         'mock_webhook_secret' => env('THAWANI_MOCK_WEBHOOK_SECRET', 'local-mock-secret'),

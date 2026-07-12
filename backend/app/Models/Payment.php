@@ -9,8 +9,11 @@ class Payment extends Model
 {
     protected $fillable = [
         'booking_id',
-        'thawani_session_id',
+        'gateway',
+        'external_session_id',
+        'external_payment_id',
         'amount',
+        'currency',
         'status',
         'raw_response',
     ];

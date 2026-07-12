@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Logo from '../components/Logo'
 import { useAuth } from '../lib/auth'
+import { openWhatsApp, whatsappUrl } from '../lib/contact'
 import { useTranslation } from '../i18n/LanguageProvider'
 import { GULF_DIAL_CODES, CONTACT_DIAL_CODE, formatGulfPhone } from '../lib/contact'
 import { isValidEmail, isValidGulfPhone, normalizeEmail } from '../lib/validation'
@@ -20,6 +21,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const { login, register } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const redirectAfterAuth = () => {
+    const from = (location.state as { from?: string } | null)?.from
+    if (from && from !== '/login') {
+      navigate(from, { replace: true })
+      return
+    }
+    navigate('/', { replace: true })
+  }
 
   const validateCredentials = (forRegister: boolean): string | null => {
     if (!isValidGulfPhone(dialCode, phone)) return t('login.invalidPhone')
@@ -57,7 +68,7 @@ export default function LoginPage() {
         }
         await register(name.trim(), normalizedEmail, fullPhone, pin, pinConfirm)
       }
-      navigate('/')
+      redirectAfterAuth()
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response?.data
       const firstFieldError = msg?.errors
@@ -166,7 +177,19 @@ export default function LoginPage() {
 
           {mode === 'login' && (
             <p className="text-xs text-roma-muted mt-4 text-center">
-              {t('login.forgotPin')} <Link to="/contact" className="text-primary hover:underline">{t('login.whatsappSupportLink')}</Link>.
+              {t('login.forgotPin')}{' '}
+              <a
+                href={whatsappUrl(t('login.forgotPinWhatsApp'))}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  e.preventDefault()
+                  openWhatsApp(t('login.forgotPinWhatsApp'))
+                }}
+                className="text-primary hover:underline"
+              >
+                {t('login.whatsappSupportLink')}
+              </a>.
             </p>
           )}
         </div>

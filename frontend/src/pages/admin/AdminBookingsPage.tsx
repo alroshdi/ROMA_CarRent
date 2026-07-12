@@ -423,7 +423,7 @@ function BookingDetailsPanel({
                 <span>#{p.id}</span>
                 <span className="text-white">{parseFloat(p.amount).toFixed(2)} {t('common.omr')}</span>
                 <span className="badge border bg-roma-dark border-roma-border">{tStatus(p.status)}</span>
-                {p.thawani_session_id && <span className="text-xs font-mono" dir="ltr">{p.thawani_session_id.slice(0, 16)}…</span>}
+                {p.external_session_id && <span className="text-xs font-mono" dir="ltr">{p.external_session_id.slice(0, 16)}…</span>}
               </div>
             ))}
           </div>

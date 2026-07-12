@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Target, Compass, Car, CheckCircle2, MapPin, Shield, Sparkles } from 'lucide-react'
 import Layout from '../components/Layout'
 import Logo from '../components/Logo'
+import WhatsAppButton from '../components/WhatsAppButton'
 import { useTranslation } from '../i18n/LanguageProvider'
 import { HERO_SLIDE_IMAGES } from '../lib/heroSlides'
 
@@ -152,9 +153,7 @@ export default function AboutPage() {
             <Link to="/browse" className="btn-primary py-3 px-8">
               {t('nav.browseCars')}
             </Link>
-            <Link to="/contact" className="btn-secondary py-3 px-8">
-              {t('nav.contact')}
-            </Link>
+            <WhatsAppButton className="py-3 px-8" />
           </div>
         </div>
       </div>

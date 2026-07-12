@@ -1,6 +1,6 @@
 import { MessageCircle } from 'lucide-react'
 import { useTranslation } from '../i18n/LanguageProvider'
-import { whatsappUrl } from '../lib/contact'
+import { openWhatsApp, whatsappUrl } from '../lib/contact'
 import {
   BOOKING_LOCATION_KEYS,
   type BookingLocationKey,
@@ -27,9 +27,8 @@ export default function BookingLocationField({
 }: BookingLocationFieldProps) {
   const { t } = useTranslation()
 
-  const waLink = whatsappUrl(
-    t(purpose === 'pickup' ? 'booking.locations.homeWhatsAppPickup' : 'booking.locations.homeWhatsAppDropoff'),
-  )
+  const waMessage = t(purpose === 'pickup' ? 'booking.locations.homeWhatsAppPickup' : 'booking.locations.homeWhatsAppDropoff')
+  const waLink = whatsappUrl(waMessage)
 
   return (
     <div>
@@ -81,6 +80,10 @@ export default function BookingLocationField({
             href={waLink}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => {
+              e.preventDefault()
+              openWhatsApp(waMessage)
+            }}
             className="inline-flex items-center gap-2 text-sm font-medium text-white bg-[#25D366] hover:bg-[#1fb855] px-3 py-2 rounded-lg transition-colors"
           >
             <MessageCircle className="w-4 h-4" />

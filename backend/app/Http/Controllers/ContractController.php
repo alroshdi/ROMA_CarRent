@@ -17,6 +17,7 @@ class ContractController extends Controller
     public function generate(Request $request, Booking $booking): JsonResponse
     {
         $this->authorizeCustomerBooking($request, $booking);
+        $this->assertBookingEligibleForContract($booking);
 
         try {
             $contract = $this->contractService->generatePdf($booking);
@@ -38,6 +39,7 @@ class ContractController extends Controller
     public function sign(Request $request, Booking $booking): JsonResponse
     {
         $this->authorizeCustomerBooking($request, $booking);
+        $this->assertBookingEligibleForContract($booking);
 
         $validated = $request->validate([
             'signature_data' => 'required|string|starts_with:data:image/|max:500000',
@@ -68,6 +70,10 @@ class ContractController extends Controller
     {
         $this->authorizeCustomerBooking($request, $booking);
 
+        if (in_array($booking->status, ['cancelled', 'completed'])) {
+            return response()->json(['message' => 'Contract is not available for this booking.'], 422);
+        }
+
         $contract = $booking->contract;
         if (! $contract) {
             return response()->json(['message' => 'Contract not found.'], 404);
@@ -88,6 +94,17 @@ class ContractController extends Controller
 
         if (! $user instanceof Customer || $booking->customer_id !== $user->id) {
             abort(403, 'Unauthorized access to booking.');
+        }
+    }
+
+    protected function assertBookingEligibleForContract(Booking $booking): void
+    {
+        if (in_array($booking->status, ['cancelled', 'completed'])) {
+            abort(422, 'Booking is not eligible for contract actions.');
+        }
+
+        if ($booking->payment_status === 'paid') {
+            abort(422, 'Contract cannot be modified after payment.');
         }
     }
 }

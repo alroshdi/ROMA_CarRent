@@ -8,6 +8,7 @@ import {
   CONTACT_PHONE_DIAL,
   CONTACT_INSTAGRAM_HANDLE,
   CONTACT_INSTAGRAM_URL,
+  openWhatsApp,
   whatsappUrl,
 } from '../lib/contact'
 import { useTranslation } from '../i18n/LanguageProvider'
@@ -36,7 +37,8 @@ function renderChannelIcon(
 
 export default function ContactPage() {
   const { t } = useTranslation()
-  const waLink = whatsappUrl(t('common.whatsappInquiry'))
+  const waMessage = t('common.whatsappInquiry')
+  const waLink = whatsappUrl(waMessage)
   const heroImage = HERO_SLIDE_IMAGES[0] || '/image/slide.jpg'
 
   const channels: {
@@ -64,7 +66,7 @@ export default function ContactPage() {
       href: waLink,
       external: true,
       icon: MessageCircle,
-      label: 'WhatsApp',
+      label: t('contact.whatsappChannel'),
       value: CONTACT_PHONE_DISPLAY,
       hint: t('contact.whatsappHint'),
       accent: 'whatsapp' as const,
@@ -120,6 +122,7 @@ export default function ContactPage() {
                 key={key}
                 href={href}
                 {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                onClick={key === 'whatsapp' ? (e) => { e.preventDefault(); openWhatsApp(waMessage) } : undefined}
                 className="card-elevated p-5 md:p-6 group hover:border-primary/35 transition-all duration-300 hover:shadow-[0_0_24px_rgba(224,38,48,0.1)] relative overflow-hidden"
               >
                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -176,6 +179,10 @@ export default function ContactPage() {
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => {
+                e.preventDefault()
+                openWhatsApp(waMessage)
+              }}
               className="flex items-center justify-center gap-2 w-full py-3.5 px-6 rounded-lg text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1fb855] transition-colors shadow-[0_4px_20px_rgba(37,211,102,0.25)]"
             >
               <MessageCircle className="w-5 h-5" />

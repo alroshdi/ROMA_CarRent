@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, type MouseEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { Search, Calendar, Car, SlidersHorizontal, ArrowUpDown, X, MessageCircle } from 'lucide-react'
@@ -7,7 +7,7 @@ import Logo from '../components/Logo'
 import CarCard from '../components/CarCard'
 import api from '../lib/api'
 import { HERO_SLIDE_IMAGES } from '../lib/heroSlides'
-import { whatsappUrl } from '../lib/contact'
+import { openWhatsApp, whatsappUrl } from '../lib/contact'
 import type { Car as CarType } from '../types'
 import { useTranslation } from '../i18n/LanguageProvider'
 
@@ -45,7 +45,13 @@ export default function BrowseCarsPage() {
   const [sort, setSort] = useState<SortOption>('price-asc')
 
   const today = format(new Date(), 'yyyy-MM-dd')
-  const whatsAppLink = whatsappUrl(t('common.whatsappInquiry'))
+  const whatsAppMessage = t('common.whatsappInquiry')
+  const whatsAppLink = whatsappUrl(whatsAppMessage)
+
+  const openWhatsAppInquiry = (e: MouseEvent) => {
+    e.preventDefault()
+    openWhatsApp(whatsAppMessage)
+  }
 
   const fetchCars = async (pickup?: string, ret?: string) => {
     setLoading(true)
@@ -264,6 +270,7 @@ export default function BrowseCarsPage() {
                 href={whatsAppLink}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={openWhatsAppInquiry}
                 className="inline-flex items-center justify-center gap-2 py-3 px-8 rounded-lg text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1fb855] transition-colors shadow-[0_4px_20px_rgba(37,211,102,0.25)]"
               >
                 <MessageCircle className="w-4 h-4" />
@@ -290,6 +297,7 @@ export default function BrowseCarsPage() {
               href={whatsAppLink}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={openWhatsAppInquiry}
               className="inline-flex items-center justify-center gap-2 py-3 px-8 rounded-lg text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1fb855] transition-colors shadow-[0_4px_20px_rgba(37,211,102,0.25)]"
             >
               <MessageCircle className="w-4 h-4" />

@@ -6,6 +6,7 @@ import {
   CONTACT_PHONE_DIAL,
   CONTACT_INSTAGRAM_HANDLE,
   CONTACT_INSTAGRAM_URL,
+  openWhatsApp,
   whatsappUrl,
 } from '../lib/contact'
 import { useAuth } from '../lib/auth'
@@ -14,7 +15,8 @@ import { useTranslation } from '../i18n/LanguageProvider'
 export default function Footer() {
   const { t } = useTranslation()
   const { isAuthenticated } = useAuth()
-  const waLink = whatsappUrl(t('common.whatsappInquiry'))
+  const waMessage = t('common.whatsappInquiry')
+  const waLink = whatsappUrl(waMessage)
 
   const navLinks = [
     { to: '/', label: t('nav.home') },
@@ -42,6 +44,10 @@ export default function Footer() {
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => {
+                e.preventDefault()
+                openWhatsApp(waMessage)
+              }}
               className="inline-flex items-center gap-2 mt-5 text-sm font-medium text-white bg-[#25D366] hover:bg-[#1fb855] px-4 py-2.5 rounded-lg transition-colors"
             >
               <MessageCircle className="w-4 h-4" />
@@ -85,6 +91,26 @@ export default function Footer() {
                   </span>
                   <span>
                     <span className="block text-xs text-roma-subtle mb-0.5">{t('common.phone')}</span>
+                    <span className="text-white font-medium" dir="ltr">{CONTACT_PHONE_DISPLAY}</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href={waLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    openWhatsApp(waMessage)
+                  }}
+                  className="flex items-start gap-3 text-sm text-roma-muted hover:text-white transition-colors group"
+                >
+                  <span className="p-2 rounded-lg bg-roma-elevated border border-roma-border group-hover:border-[#25D366]/40 transition-colors shrink-0">
+                    <MessageCircle className="w-4 h-4 text-[#25D366]" />
+                  </span>
+                  <span>
+                    <span className="block text-xs text-roma-subtle mb-0.5">{t('contact.whatsappChannel')}</span>
                     <span className="text-white font-medium" dir="ltr">{CONTACT_PHONE_DISPLAY}</span>
                   </span>
                 </a>

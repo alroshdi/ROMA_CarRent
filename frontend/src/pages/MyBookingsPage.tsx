@@ -131,8 +131,13 @@ export default function MyBookingsPage() {
       const refundEligible = data.refund_eligible
       const refundAmount = data.refund_amount ? parseFloat(data.refund_amount) : parseFloat(cancelModal.booking.total_price)
 
-      const message = mapCancelResultMessage(outsideWindow, refundEligible, wasPaid, t, refundAmount)
-      const variant = !outsideWindow && wasPaid && !refundEligible ? 'warning' : 'success'
+      let message = mapCancelResultMessage(outsideWindow, refundEligible, wasPaid, t, refundAmount)
+      let variant: 'success' | 'warning' | 'info' = !outsideWindow && wasPaid && !refundEligible ? 'warning' : 'success'
+
+      if (data.refund_failed) {
+        message = t('bookings.refundProcessingFailed')
+        variant = 'warning'
+      }
 
       setResultModal({
         title: t('bookings.cancelledTitle'),

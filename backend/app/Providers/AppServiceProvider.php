@@ -2,21 +2,18 @@
 
 namespace App\Providers;
 
+use App\Services\Payment\PaymentGatewayManager;
+use App\Services\Payment\PaymentService;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        //
+        $this->app->singleton(PaymentGatewayManager::class);
+        $this->app->singleton(PaymentService::class);
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         //

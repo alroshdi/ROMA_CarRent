@@ -21,12 +21,14 @@ use Illuminate\Support\Facades\Route;
 
 // Public routes
 Route::get('/settings', [SettingsController::class, 'index']);
+Route::get('/payments/gateways', [PaymentController::class, 'gateways']);
 Route::get('/cars', [CarController::class, 'index']);
 Route::get('/cars/{car}', [CarController::class, 'show']);
 Route::get('/drivers', [DriverController::class, 'index']);
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/payments/webhook', [PaymentController::class, 'webhook']);
+Route::post('/payments/webhook/{gateway}', [PaymentController::class, 'webhook']);
 
 // Customer authenticated routes
 Route::middleware('auth:sanctum')->group(function () {

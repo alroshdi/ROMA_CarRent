@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
-import { CheckCircle, MessageCircle, AlertTriangle } from 'lucide-react'
+import { CheckCircle, MessageCircle, AlertTriangle, Clock } from 'lucide-react'
 import Layout from '../components/Layout'
 import api from '../lib/api'
-import type { Booking } from '../types'
+import type { Booking, Payment } from '../types'
 import { useTranslation } from '../i18n/LanguageProvider'
-import { whatsappUrl } from '../lib/contact'
+import { openWhatsApp, whatsappUrl } from '../lib/contact'
 
 export default function PaymentSuccessPage() {
   const { t, formatDate } = useTranslation()
   const [searchParams] = useSearchParams()
   const sessionId = searchParams.get('session_id')
   const [booking, setBooking] = useState<Booking | null>(null)
+  const [payment, setPayment] = useState<Payment | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [whatsappSent, setWhatsappSent] = useState(false)
@@ -22,31 +23,63 @@ export default function PaymentSuccessPage() {
       setLoading(false)
       return
     }
-    api.get(`/payments/success?session_id=${sessionId}`)
-      .then((paymentRes) => {
-        setBooking(paymentRes.data.booking)
-        setLoading(false)
-      })
-      .catch(() => {
-        setError(t('payment.verifyFailed'))
-        setLoading(false)
-      })
+
+    let attempts = 0
+    let cancelled = false
+
+    const verify = () => {
+      api.get(`/payments/success?session_id=${sessionId}`)
+        .then((paymentRes) => {
+          if (cancelled) return
+          const paymentData = paymentRes.data.payment as Payment
+          setPayment(paymentData)
+          setBooking(paymentRes.data.booking)
+
+          if (paymentData.status === 'paid') {
+            setLoading(false)
+            return
+          }
+
+          if (attempts < 5) {
+            attempts += 1
+            window.setTimeout(verify, 2000)
+            return
+          }
+
+          setLoading(false)
+        })
+        .catch(() => {
+          if (cancelled) return
+          setError(t('payment.verifyFailed'))
+          setLoading(false)
+        })
+    }
+
+    verify()
+
+    return () => {
+      cancelled = true
+    }
   }, [sessionId, t])
 
-  const waLink = booking
-    ? whatsappUrl(
-        t('payment.whatsappBooking', {
-          id: booking.id,
-          car: booking.car?.name || t('common.car'),
-          pickup: formatDate(booking.pickup_date, 'MMM d, yyyy'),
-          return: formatDate(booking.return_date, 'MMM d, yyyy'),
-        }),
-      )
+  const isPaid = payment?.status === 'paid'
+  const isPending = payment?.status === 'initiated'
+  const isFailed = payment?.status === 'failed'
+
+  const waMessage = booking && isPaid
+    ? t('payment.whatsappBooking', {
+        id: booking.id,
+        car: booking.car?.name || t('common.car'),
+        pickup: formatDate(booking.pickup_date, 'MMM d, yyyy'),
+        return: formatDate(booking.return_date, 'MMM d, yyyy'),
+      })
     : null
 
+  const waLink = waMessage ? whatsappUrl(waMessage) : null
+
   const handleWhatsAppClick = () => {
-    if (!waLink) return
-    window.open(waLink, '_blank', 'noopener,noreferrer')
+    if (!waMessage) return
+    openWhatsApp(waMessage)
     setWhatsappSent(true)
     if (booking) {
       sessionStorage.setItem(`whatsapp_sent_booking_${booking.id}`, '1')
@@ -54,17 +87,18 @@ export default function PaymentSuccessPage() {
   }
 
   useEffect(() => {
-    if (booking) {
+    if (booking && isPaid) {
       const sent = sessionStorage.getItem(`whatsapp_sent_booking_${booking.id}`)
       if (sent === '1') setWhatsappSent(true)
     }
-  }, [booking])
+  }, [booking, isPaid])
 
   return (
     <Layout>
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
         {loading ? (
           <div className="card-elevated p-8">
+            <Clock className="w-12 h-12 text-primary mx-auto mb-4 animate-pulse" aria-hidden />
             <p className="text-roma-muted">{t('payment.verifying')}</p>
           </div>
         ) : error ? (
@@ -72,6 +106,24 @@ export default function PaymentSuccessPage() {
             <AlertTriangle className="w-16 h-16 text-amber-400 mx-auto mb-4" aria-hidden />
             <h1 className="text-xl font-bold text-white mb-3" style={{ fontFamily: 'var(--font-display)' }}>{t('payment.verifyFailed')}</h1>
             <p className="alert-error mb-6">{error}</p>
+            <Link to="/my-bookings" className="btn-secondary py-2.5 px-6 text-sm inline-flex">
+              {t('payment.viewBookings')}
+            </Link>
+          </div>
+        ) : isFailed ? (
+          <div className="card-elevated p-8">
+            <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" aria-hidden />
+            <h1 className="text-xl font-bold text-white mb-3" style={{ fontFamily: 'var(--font-display)' }}>{t('payment.failedTitle')}</h1>
+            <p className="text-roma-muted mb-6">{t('payment.failedMessage')}</p>
+            <Link to="/my-bookings" className="btn-primary py-2.5 px-6 text-sm inline-flex">
+              {t('payment.retryPayment')}
+            </Link>
+          </div>
+        ) : isPending ? (
+          <div className="card-elevated p-8">
+            <Clock className="w-16 h-16 text-amber-400 mx-auto mb-4" aria-hidden />
+            <h1 className="text-xl font-bold text-white mb-3" style={{ fontFamily: 'var(--font-display)' }}>{t('payment.pendingTitle')}</h1>
+            <p className="text-roma-muted mb-6">{t('payment.pendingMessage')}</p>
             <Link to="/my-bookings" className="btn-secondary py-2.5 px-6 text-sm inline-flex">
               {t('payment.viewBookings')}
             </Link>
